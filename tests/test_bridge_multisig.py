@@ -124,7 +124,7 @@ class BridgeTestCase(unittest.TestCase):
         self.assertEqual(
             events[0]['args'],
             {
-                'amount': 10 * ONE_TOKEN, 'from': users['user2'].address,
+                'amount': 10 * ONE_TOKEN, 'receiver': users['user2'].address,
                 'token': ethereum_bax.contract.address, 'targetChain': self.TARGET_RELAY
             }
         )
@@ -151,19 +151,39 @@ class BridgeTestCase(unittest.TestCase):
             100 * ONE_TOKEN
         )  # Now contract has 100 RBAX
 
+        # Now signer must place new txHash for validators approval
+        bridge.execute_tx(
+            'list', ([
+                [
+                    int(relay_bax.contract.address, 16), int(users['user2'].address, 16),
+                    10 * ONE_TOKEN, int(result['transactionHash'].hex(), 16)
+                ]
+            ],),
+            {'from': users['signer'].address}
+        )
+
         # Validators (Only 2 of 3) approve transaction
         for user_key in ('validator1', 'validator2'):
             bridge.execute_tx(
                 'confirm', ([result['transactionHash']],),
                 {'from': users[user_key].address}
             )
+
         # Validator can not approve transaction twice
         with self.assertRaises(ValueError) as e:
             bridge.execute_tx(
                 'confirm', ([result['transactionHash']],),
                 {'from': users[user_key].address}
             )
-        self.assertTrue('bridge: key already confirmed' in str(e.exception))
+        self.assertTrue('bridge: txHash already confirmed' in str(e.exception))
+
+        # Validator can not approve transaction before signer list it
+        with self.assertRaises(ValueError) as e:
+            bridge.execute_tx(
+                'confirm', (['0x' + ''.join(reversed(result['transactionHash'].hex()[2:]))],),
+                {'from': users[user_key].address}
+            )
+        self.assertTrue('bridge: unknown txHash' in str(e.exception))
 
         # Bridge worker execute transfer transaction from its signer
         self.assertEqual(
@@ -171,12 +191,7 @@ class BridgeTestCase(unittest.TestCase):
             0
         )
         bridge.execute_tx(
-            'transfer', ([
-                [
-                    int(relay_bax.contract.address, 16), int(users['user2'].address, 16),
-                    10 * ONE_TOKEN, int(result['transactionHash'].hex(), 16)
-                ]
-            ],),
+            'transfer', ([result['transactionHash'].hex()],),
             {'from': users['signer'].address}
         )
         self.assertEqual(
@@ -190,16 +205,11 @@ class BridgeTestCase(unittest.TestCase):
         # Ensure that txHash of transfer registered in contract state
         self.assertEqual(
             bridge.call_method('confirmations', (result['transactionHash'],)),
-            [2, True]
+            [relay_bax.contract.address, users['user2'].address, 10 * ONE_TOKEN, 2, True]
         )
         # Bridge must skip transfer if already execute it (Check by txHash)
         bridge.execute_tx(
-            'transfer', ([
-                [
-                    int(relay_bax.contract.address, 16), int(users['user2'].address, 16),
-                    10 * ONE_TOKEN, int(result['transactionHash'].hex(), 16)
-                ]
-            ],),
+            'transfer', ([result['transactionHash'].hex()],),
             {'from': users['signer'].address}
         )
         # Balances not changed since last run

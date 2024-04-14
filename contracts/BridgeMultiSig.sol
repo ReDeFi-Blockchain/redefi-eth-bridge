@@ -27,7 +27,7 @@ library TransferHelper {
 }
 
 contract Bridge {
-	event Deposit(address indexed token, address indexed from, uint amount, uint targetChain);
+	event Deposit(address indexed token, address indexed receiver, uint amount, uint targetChain);
 	event Transfer(bytes32 indexed txId, uint amount);
 
 	event NewSigner(address indexed signer);
@@ -35,6 +35,9 @@ contract Bridge {
 	event RemovedValidator(address indexed signer);
 
 	struct ConfirmationData {
+		address token;
+		address receiver;
+		uint256 amount;
 		uint256 confirmed;
 		mapping(address=>bool) confirmedBy;
 		bool isSent;
@@ -60,7 +63,7 @@ contract Bridge {
 		require(msg.sender == owner);
 		_;
 	}
-	
+
 	modifier onlyAdmin() {
 		require(msg.sender == admin || msg.sender == owner);
 		_;
@@ -105,7 +108,8 @@ contract Bridge {
 
 	function confirm(bytes32[] memory _txHashes) external onlyValidator {
 		for(uint i = 0; i < _txHashes.length; i++) {
-			require(!confirmations[_txHashes[i]].confirmedBy[msg.sender], "bridge: key already confirmed");
+			require(confirmations[_txHashes[i]].amount > 0, "bridge: unknown txHash");
+			require(!confirmations[_txHashes[i]].confirmedBy[msg.sender], "bridge: txHash already confirmed");
 			require(!confirmations[_txHashes[i]].isSent, "bridge: txHash already sent");
 		}
 
@@ -115,40 +119,54 @@ contract Bridge {
 		}
 	}
 
-	function addTokens(address[] memory tokens) external onlyAdmin {
-		for (uint k=0; k<tokens.length; k++) {
-			if (IERC20(tokens[k]).owner()==address(this)) {
-				isPeggingToken[tokens[k]] = true;
+	function addTokens(address[] memory _tokens) external onlyAdmin {
+		for (uint k=0; k< _tokens.length; k++) {
+			if (IERC20(_tokens[k]).owner() == address(this)) {
+				isPeggingToken[_tokens[k]] = true;
 			} else {
-				isToken[tokens[k]] = true;
+				isToken[_tokens[k]] = true;
 			}
 		}
 	}
 
-	function deposit(address target, address token, uint amount, uint targetChain) external payable {
-		require(msg.sender.code.length==0, "bridge: only personal");
-		require(msg.sender!=address(0) && target!=address(0), "bridge: zero sender");
-		if (token==address(0)) {
-			require(msg.value==amount, "bridge: amount");
+	function deposit(address _receiver, address _token, uint _amount, uint _targetChain) external payable {
+		require(msg.sender.code.length == 0, "bridge: only personal");
+		require(msg.sender != address(0) && _receiver != address(0), "bridge: zero receiver");
+		if (_token == address(0)) {
+			require(msg.value == _amount, "bridge: amount");
 		} else {
-			if (isPeggingToken[token]) {
-				IERC20(token).burnFrom(msg.sender, amount);
-			} else if (isToken[token]){
-				TransferHelper.safeTransferFrom(token, msg.sender, address(this), amount);
+			if (isPeggingToken[_token]) {
+				IERC20(_token).burnFrom(msg.sender, _amount);
+			} else if (isToken[_token]){
+				TransferHelper.safeTransferFrom(_token, msg.sender, address(this), _amount);
 			} else {
 				revert();
 			}
 		}
-		emit Deposit(token, target, amount, targetChain);
+		emit Deposit(_token, _receiver, _amount, _targetChain);
 	}
 
-	function transfer(uint[][] memory args) external payable onlySigner {
-		for(uint i=0; i<args.length; i++) {
-			address _token 		= address(uint160(args[i][0]));
-			address _to			= address(uint160(args[i][1]));
-			uint _amount 		= args[i][2];
-			bytes32 _txHash = bytes32(args[i][3]);
+	function list(uint[][] memory _args) external onlySigner {
+		for(uint i = 0; i < _args.length; i++) {
+			address _token = address(uint160(_args[i][0]));
+			address _to = address(uint160(_args[i][1]));
+			uint _amount = _args[i][2];
+			bytes32 _txHash = bytes32(_args[i][3]);
+			require(_amount > 0, "bridge: amount must be more than zero");
+			require(confirmations[_txHash].amount == 0, "bridge: txHash already listed");
+			confirmations[_txHash].token = _token;
+			confirmations[_txHash].receiver = _to;
+			confirmations[_txHash].amount = _amount;
+		}
+	}
+
+	function transfer(bytes32[] memory _txHashes) external payable onlySigner {
+		for(uint i = 0; i < _txHashes.length; i++) {
+			bytes32 _txHash = _txHashes[i];
 			if (!confirmations[_txHash].isSent && confirmations[_txHash].confirmed >= requiredConfirmations) {
+				address _token = confirmations[_txHash].token;
+				address _to = confirmations[_txHash].receiver;
+				uint256 _amount = confirmations[_txHash].amount;
 				if (_token==address(0)) {
 					TransferHelper.safeTransferETH(_to, _amount);
 				} else {
