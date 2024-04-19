@@ -10,9 +10,9 @@ ONE_TOKEN = 10 ** 18
 
 class BridgeTestCase(unittest.TestCase):
     SOLC_VERSION = '0.8.24'
-    # TODO: replace to real target chain ids
+
     TARGET_ETH = 1
-    TARGET_RELAY = 2
+    TARGET_RELAY = 47803
 
     def test_bridge_base(self):
         api, deployer = get_eth_api_and_account(Config.FRONTIER_RPC)

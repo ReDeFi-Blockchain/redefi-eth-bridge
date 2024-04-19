@@ -10,9 +10,9 @@ ONE_TOKEN = 10 ** 18
 
 class BridgeTestCase(unittest.TestCase):
     SOLC_VERSION = '0.8.24'
-    # TODO: replace to real target chain ids
+
     TARGET_ETH = 1
-    TARGET_RELAY = 2
+    TARGET_RELAY = 47803
 
     def test_bridge_multi_sig_base(self):
         api, deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
@@ -74,6 +74,12 @@ class BridgeTestCase(unittest.TestCase):
             {'from': deployer.address}
         )
 
+        # Check tokens list
+        ETHEREUM_BAX_ID = 1
+        RELAY_BAX_ID = 2
+        self.assertEqual(bridge.call_method('isToken', (ethereum_bax.contract.address,)), [ETHEREUM_BAX_ID, False])
+        self.assertEqual(bridge.call_method('isToken', (relay_bax.contract.address,)), [RELAY_BAX_ID, False])
+
         self.assertEqual(
             ethereum_bax.call_method('balanceOf', (deployer.address,)),
             1_000 * ONE_TOKEN
@@ -125,7 +131,7 @@ class BridgeTestCase(unittest.TestCase):
             events[0]['args'],
             {
                 'amount': 10 * ONE_TOKEN, 'receiver': users['user2'].address,
-                'token': ethereum_bax.contract.address, 'targetChain': self.TARGET_RELAY
+                'token': ethereum_bax.contract.address, 'targetChainId': self.TARGET_RELAY
             }
         )
         # important, we use transactionHash as identifier of transfer on other side
@@ -205,7 +211,8 @@ class BridgeTestCase(unittest.TestCase):
         # Ensure that txHash of transfer registered in contract state
         self.assertEqual(
             bridge.call_method('confirmations', (result['transactionHash'],)),
-            [relay_bax.contract.address, users['user2'].address, 10 * ONE_TOKEN, 2, True]
+            # isSent, confirmed, tokenId, receiver, amount
+            [True, 2, RELAY_BAX_ID, users['user2'].address, 10 * ONE_TOKEN]
         )
         # Bridge must skip transfer if already execute it (Check by txHash)
         bridge.execute_tx(
