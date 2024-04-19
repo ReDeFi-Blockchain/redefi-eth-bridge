@@ -43,12 +43,11 @@ contract Bridge {
 	mapping(address => bool) public isValidatorDeleted;
 
 	struct ConfirmationData {
-		bool isSent;
-		uint16 confirmed;
-		uint16[] confirmedBy;
-		uint16 tokenId;
 		address receiver;
 		uint256 amount;
+		uint16[] confirmedBy;
+		uint16 tokenId;
+		bool isSent;
 	}
 
 	mapping(bytes32 => ConfirmationData) public confirmations;
@@ -82,7 +81,7 @@ contract Bridge {
 	}
 
 	modifier onlyValidator() {
-		require(isValidator(msg.sender) && !isValidatorDeleted[msg.sender]);
+		require(isValidator(msg.sender));
 		_;
 	}
 
@@ -97,13 +96,8 @@ contract Bridge {
 		requiredConfirmations = _confirmations;
 	}
 
-	function isValidator(address _validator) public returns (bool) {
-		for(uint i = 0; i < validators.length; i++) {
-			if(validators[i] == _validator) {
-				return true;
-			}
-		}
-		return false;
+	function isValidator(address _validator) public view returns (bool) {
+		return validatorIds[_validator] > 0 && !isValidatorDeleted[_validator];
 	}
 
 	function addValidators(address[] memory _validators) external onlyAdmin {
@@ -128,7 +122,7 @@ contract Bridge {
 		}
 	}
 
-	function isConfirmedBy(bytes32 _txHash, address _validator) public returns (bool) {
+	function isConfirmedBy(bytes32 _txHash, address _validator) public view returns (bool) {
 		uint16 _validatorId = validatorIds[_validator];
 		for(uint i = 0; i < confirmations[_txHash].confirmedBy.length; i++) {
 			if(confirmations[_txHash].confirmedBy[i] == _validatorId) return true;
@@ -145,7 +139,6 @@ contract Bridge {
 
 		for(uint i = 0; i < _txHashes.length; i++) {
 			confirmations[_txHashes[i]].confirmedBy.push(validatorIds[msg.sender]);
-			confirmations[_txHashes[i]].confirmed++;
 		}
 	}
 
@@ -195,7 +188,7 @@ contract Bridge {
 	function transfer(bytes32[] memory _txHashes) external payable onlySigner {
 		for(uint i = 0; i < _txHashes.length; i++) {
 			bytes32 _txHash = _txHashes[i];
-			if (!confirmations[_txHash].isSent && confirmations[_txHash].confirmed >= requiredConfirmations) {
+			if (!confirmations[_txHash].isSent && confirmations[_txHash].confirmedBy.length >= requiredConfirmations) {
 				uint16 _tokenId = confirmations[_txHash].tokenId;
 				address _token = tokens[_tokenId - 1];
 				address _to = confirmations[_txHash].receiver;

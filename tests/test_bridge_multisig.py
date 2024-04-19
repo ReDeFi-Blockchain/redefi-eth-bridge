@@ -211,8 +211,8 @@ class BridgeTestCase(unittest.TestCase):
         # Ensure that txHash of transfer registered in contract state
         self.assertEqual(
             bridge.call_method('confirmations', (result['transactionHash'],)),
-            # isSent, confirmed, tokenId, receiver, amount
-            [True, 2, RELAY_BAX_ID, users['user2'].address, 10 * ONE_TOKEN]
+            # receiver, amount, tokenId, isSent
+            [users['user2'].address, 10 * ONE_TOKEN, RELAY_BAX_ID, True]
         )
         # Bridge must skip transfer if already execute it (Check by txHash)
         bridge.execute_tx(
