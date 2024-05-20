@@ -1,7 +1,7 @@
 import unittest
 
 from tests.config import Config
-from tests.util import get_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
+from tests.util import get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
 from src.util import ContractHelper, ContractWrapper
 
 
@@ -28,7 +28,7 @@ class BridgeTestCase(unittest.TestCase):
             transfer_balance_substrate(
                 Config.SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
             )
-        cached = get_cache(self.SOLC_VERSION)
+        cached = get_contract_cache(self.SOLC_VERSION)
         deployed = ContractHelper.deploy_by_bytecode(
             api, deployer, ('Eth BAX', 'EBAX', 18, deployer.address, 1_000),
             abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
@@ -167,6 +167,11 @@ class BridgeTestCase(unittest.TestCase):
             ],),
             {'from': users['signer'].address}
         )
+
+        # We get Listed event for validators on network
+        events = bridge.contract.events.Listed.get_logs(fromBlock=result['blockNumber'])
+        self.assertEqual(len(events), 1)
+        self.assertEqual(events[0]['args']['txHash'], result['transactionHash'])
 
         # Validators (Only 2 of 3) approve transaction
         for user_key in ('validator1', 'validator2'):

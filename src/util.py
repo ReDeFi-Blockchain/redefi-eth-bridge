@@ -1,6 +1,7 @@
 import typing
 
 import web3
+from web3.middleware.signing import construct_sign_and_send_raw_middleware
 import eth_account.account
 import solcx
 from substrateinterface.utils.ss58 import ss58_encode, ss58_decode
@@ -9,7 +10,13 @@ from substrateinterface.utils.hasher import blake2_256
 from src import types
 
 
-__all__ = ['ContractHelper', 'EthBalanceChecker', 'ContractWrapper', 'evm_to_address', 'address_to_evm']
+__all__ = [
+    'ContractHelper', 'EthBalanceChecker', 'ContractWrapper',
+    'evm_to_address', 'address_to_evm', 'eth_add_to_auto_sign',
+    'ADDRESS_0'
+]
+
+ADDRESS_0 = '0x0000000000000000000000000000000000000000'
 
 
 class ContractHelper(object):
@@ -83,8 +90,13 @@ class EthBalanceChecker(object):
 class ContractWrapper(object):
     def __init__(self, api: web3.Web3, contract_address: types.Address, contract_abi: list, poll_latency: float = 1.0):
         self.api = api
+        self._contract_address = contract_address
         self.contract = self.api.eth.contract(contract_address, abi=contract_abi)
         self.poll_latency = poll_latency
+
+    @property
+    def address(self):
+        return self._contract_address
 
     def call_method(self, method_name: str, arguments: tuple = ()):
         return getattr(self.contract.functions, method_name)(*arguments).call()
@@ -95,3 +107,7 @@ class ContractWrapper(object):
     def execute_tx(self, method_name: str, arguments: tuple = (), options: dict = None):
         tx_hash = self.make_tx(method_name, arguments).transact(options)
         return self.api.eth.wait_for_transaction_receipt(tx_hash, poll_latency=self.poll_latency)
+
+
+def eth_add_to_auto_sign(api: web3.Web3, account: eth_account.account.LocalAccount):
+    api.middleware_onion.add(construct_sign_and_send_raw_middleware(account))

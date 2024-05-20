@@ -29,6 +29,7 @@ library TransferHelper {
 contract Bridge {
 	event Deposit(address indexed token, address indexed receiver, uint amount, uint targetChainId);
 	event Transfer(bytes32 indexed txHash, uint amount);
+	event Listed(bytes32 indexed txHash);
 
 	event NewSigner(address indexed signer);
 	event NewValidator(address indexed signer);
@@ -182,6 +183,7 @@ contract Bridge {
 			confirmations[_txHash].tokenId = _tokenId;
 			confirmations[_txHash].receiver = _to;
 			confirmations[_txHash].amount = _amount;
+			emit Listed(_txHash);
 		}
 	}
 

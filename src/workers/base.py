@@ -1,0 +1,76 @@
+import logging
+import json
+import os
+import typing
+
+import web3
+import eth_account.account
+from src import types, util
+
+
+__all__ = ['Worker', 'WorkerConfig']
+
+
+class WorkerConfig(object):
+    eth_rpc: str = os.getenv('ETH_RPC', 'http://127.0.0.1:9944')
+    eth_contract_address = os.getenv('ETH_CONTRACT_ADDRESS', util.ADDRESS_0)
+    eth_private_key: typing.Optional[str] = os.getenv('ETH_PRIVATE_KEY', None) or None
+    _poll_latency: int = int(os.getenv('ETH_RPC_POLL_LATENCY_MS', '1000'))
+    rpc_urls_file_path: str = os.getenv('ETH_RPC_URLS_FILE', None)
+    _rpc_urls = None
+
+    @property
+    def poll_latency(self):
+        return self._poll_latency / 1_000
+
+    def load_rpc_urls(self):
+        if self.rpc_urls_file_path is None:
+            raise ValueError('Invalid rpc urls file')
+        with open(self.rpc_urls_file_path, 'r', encoding='utf-8') as f:
+            urls = json.loads(f.read())
+        self._rpc_urls = {int(k): v for k, v in urls.items()}
+
+    @property
+    def rpc_urls(self) -> typing.Dict[int, typing.List[str]]:
+        if self._rpc_urls is None:
+            self.load_rpc_urls()
+        return self._rpc_urls
+
+
+class Worker(object):
+    LOGGER_NAME = 'worker.base'
+
+    def __init__(self, config: WorkerConfig = None):
+        if config is None:
+            config = WorkerConfig()
+        self.config = config
+        self.account = None
+        self.api = self.construct_http_api(self.config.eth_rpc)
+        if config.eth_private_key is not None:
+            self.account = eth_account.account.Account.from_key(config.eth_private_key)
+            util.eth_add_to_auto_sign(self.api, self.account)
+        self.log = logging.getLogger(self.LOGGER_NAME)
+
+    @classmethod
+    def construct_http_api(cls, rpc_url: str):
+        return web3.Web3(web3.Web3.HTTPProvider(rpc_url))
+
+    @classmethod
+    def get_bridge_contract(cls, api: web3.Web3, contract_address: types.Address, poll_latency=1.0):
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'abi', 'BridgeLinked.json'), 'r') as f:
+            abi = json.loads(f.read())
+            return util.ContractWrapper(
+                api, contract_address, contract_abi=abi, poll_latency=poll_latency
+            )
+
+    @classmethod
+    def check_tx_block(cls, tx_hash: types.TxHash, rpc_url: str) -> typing.Optional[int]:
+        api = cls.construct_http_api(rpc_url)
+
+        tx_receipt = api.eth.get_transaction_receipt(tx_hash)
+        if tx_receipt is None:
+            return None
+        return tx_receipt['blockNumber']
+
+    def listen_blocks(self, last_block: int = 0):
+        pass

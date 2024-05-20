@@ -1,8 +1,11 @@
 import unittest
 
 from tests.config import Config
-from tests.util import get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
+from tests.util import (
+    get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate, write_cache
+)
 from src.util import ContractHelper, ContractWrapper
+from src.workers import Validator, WorkerConfig, Signer
 
 
 ONE_TOKEN = 10 ** 18
@@ -10,9 +13,6 @@ ONE_TOKEN = 10 ** 18
 
 class BridgeTestCase(unittest.TestCase):
     SOLC_VERSION = '0.8.24'
-
-    TARGET_ETH = 1
-    TARGET_RELAY = 47803
 
     def init_bridge(self, api, deployer, code, signer_address, validator_address, bax_address):
         deployed = ContractHelper.deploy_by_bytecode(
@@ -50,55 +50,71 @@ class BridgeTestCase(unittest.TestCase):
 
         return bridge
 
-    def test_bridge_linked_base(self):
-        api, _deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
-        users = {'user2': api.eth.account.create(), 'deployer_eth': _deployer}
-        for user_key in ('signer_eth', 'signer_relay', 'validator_eth', 'validator_relay', 'user1', 'deployer_relay'):
-            users[user_key] = api.eth.account.create()
-            eth_add_to_auto_sign(api, users[user_key])
+    def test_bridge_linked_validator(self):
+        api_relay, _deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
+        api_eth, _deployer_eth = get_eth_api_and_account(Config.SECOND_FRONTIER_RPC)
+        target_eth = int(api_eth.eth.chain_id)
+        target_relay = int(api_relay.eth.chain_id)
+        rpc_urls_path = write_cache(
+            'rpc_urls.json', {target_eth: [Config.SECOND_FRONTIER_RPC], target_relay: [Config.FRONTIER_RPC]}
+        )
+        users = {'user2': api_relay.eth.account.create(), 'deployer_eth': _deployer_eth, 'deployer_relay': _deployer}
+        for user_key in ('signer_eth', 'validator_eth', 'user1'):
+            users[user_key] = api_eth.eth.account.create()
+            eth_add_to_auto_sign(api_eth, users[user_key])
+        for user_key in ('signer_relay', 'validator_relay'):
+            users[user_key] = api_relay.eth.account.create()
+            eth_add_to_auto_sign(api_relay, users[user_key])
         for user, amount in (
-            *((users[x], 100) for x in ('deployer_eth', 'deployer_relay', 'signer_eth', 'signer_relay')),
-            *((users[x], 10) for x in ('validator_eth', 'validator_relay', 'user1', 'user2'))
+            *((users[x], 100) for x in ('deployer_relay', 'signer_relay')),
+            *((users[x], 10) for x in ('validator_relay',))
         ):
             transfer_balance_substrate(
                 Config.SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
             )
+        for user, amount in (
+            *((users[x], 100) for x in ('deployer_eth', 'signer_eth',)),
+            *((users[x], 10) for x in ('validator_eth', 'user1'))
+        ):
+            transfer_balance_substrate(
+                Config.SECOND_SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
+            )
         cached = get_contract_cache(self.SOLC_VERSION)
         deployed = ContractHelper.deploy_by_bytecode(
-            api, users['deployer_eth'], ('Eth BAX', 'EBAX', 18, users['deployer_eth'].address, 1_000),
+            api_eth, users['deployer_eth'], ('Eth BAX', 'EBAX', 18, users['deployer_eth'].address, 1_000),
             abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
         )
-        bax_eth = ContractWrapper(api, deployed['address'], deployed['abi'])
+        bax_eth = ContractWrapper(api_eth, deployed['address'], deployed['abi'])
 
         deployed = ContractHelper.deploy_by_bytecode(
-            api, users['deployer_relay'], ('Relay BAX', 'RBAX', 18, users['deployer_relay'].address, 1_000),
+            api_relay, users['deployer_relay'], ('Relay BAX', 'RBAX', 18, users['deployer_relay'].address, 1_000),
             abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
         )
-        bax_relay = ContractWrapper(api, deployed['address'], deployed['abi'])
+        bax_relay = ContractWrapper(api_relay, deployed['address'], deployed['abi'])
 
         bridge_eth = self.init_bridge(
-            api, users['deployer_eth'], cached['bridge_linked'],
+            api_eth, users['deployer_eth'], cached['bridge_linked'],
             users['signer_eth'].address, users['validator_eth'].address, bax_eth.contract.address
         )
 
         bridge_relay = self.init_bridge(
-            api, users['deployer_relay'], cached['bridge_linked'],
+            api_relay, users['deployer_relay'], cached['bridge_linked'],
             users['signer_relay'].address, users['validator_relay'].address, bax_relay.contract.address
         )
 
         # set links on bridges on other side
         bridge_eth.execute_tx(
-            'addLink', (self.TARGET_RELAY, bridge_relay.contract.address,),
+            'addLink', (target_relay, bridge_relay.contract.address,),
             {'from': users['deployer_eth'].address}
         )
         bridge_relay.execute_tx(
-            'addLink', (self.TARGET_ETH, bridge_eth.contract.address,),
+            'addLink', (target_eth, bridge_eth.contract.address,),
             {'from': users['deployer_relay'].address}
         )
 
         # set pair on ethereum side (For example we transfer only from eth to relay)
         bridge_eth.execute_tx(
-            'addPair', (bax_eth.contract.address, self.TARGET_RELAY, bax_relay.contract.address),
+            'addPair', (bax_eth.contract.address, target_relay, bax_relay.contract.address),
             {'from': users['deployer_eth'].address}
         )
 
@@ -130,7 +146,7 @@ class BridgeTestCase(unittest.TestCase):
 
         # User1 send 10 tokens to eth bridge for user2 on relay
         result = bridge_eth.execute_tx(
-            'deposit', (users['user2'].address, bax_eth.contract.address, 10 * ONE_TOKEN, self.TARGET_RELAY),
+            'deposit', (users['user2'].address, bax_eth.contract.address, 10 * ONE_TOKEN, target_relay),
             {'from': users['user1'].address}
         )
         self.assertEqual(
@@ -138,27 +154,7 @@ class BridgeTestCase(unittest.TestCase):
             10 * ONE_TOKEN
         )
 
-        # Now bridge worker must scan events from chain. We already have blockNumber of event, so scan only this block
-        events = bridge_eth.contract.events.Deposit.get_logs(fromBlock=result['blockNumber'])
-        self.assertEqual(len(events), 1)
-        self.assertEqual(
-            events[0]['args'],
-            {
-                'amount': 10 * ONE_TOKEN, 'receiver': users['user2'].address,
-                'token': bax_eth.contract.address, 'targetChainId': self.TARGET_RELAY
-            }
-        )
-        # important, we use transactionHash as identifier of transfer on other side
-        self.assertEqual(events[0]['transactionHash'], result['transactionHash'])
-
-        # Worker checks the pair on other side
-        self.assertEqual(bridge_eth.call_method('hasPair', (bax_eth.contract.address, self.TARGET_RELAY)), True)
-        self.assertEqual(
-            bridge_eth.call_method('getDestinationAddress', (bax_eth.contract.address, self.TARGET_RELAY)),
-            bax_relay.contract.address
-        )
-
-        # But first we need to give contract balance in other token to transfer
+        # At first we need to give contract balance in other token to transfer
         self.assertEqual(
             bax_relay.call_method('balanceOf', (bridge_relay.contract.address,)),
             0
@@ -176,57 +172,27 @@ class BridgeTestCase(unittest.TestCase):
             100 * ONE_TOKEN
         )  # Now contract has 100 RBAX
 
-        # Now signer must place new txHash for validators approval
-        bridge_relay.execute_tx(
-            'list', ([
-                [
-                    int(bax_relay.contract.address, 16), int(users['user2'].address, 16),
-                    10 * ONE_TOKEN, self.TARGET_ETH, int(result['transactionHash'].hex(), 16)
-                ]
-            ],),
-            {'from': users['signer_relay'].address}
-        )
+        # Now bridge worker must scan events from chain. We already have blockNumber of event, so scan only this block
+        signer_config = WorkerConfig()
+        signer_config.eth_private_key = users['signer_relay'].key
+        signer_config.eth_contract_address = bridge_eth.contract.address
+        signer_config.eth_rpc = Config.SECOND_FRONTIER_RPC
+        signer_config.rpc_urls_file_path = rpc_urls_path
 
-        # We get Listed event for validators on network
-        events = bridge_relay.contract.events.Listed.get_logs(fromBlock=result['blockNumber'])
-        self.assertEqual(len(events), 1)
-        listed_event = events[0]['args']
-        self.assertEqual(listed_event, {
-            'txHash': result['transactionHash'], 'sourceChainId': self.TARGET_ETH
-        })
+        signer = Signer(signer_config)
+
+        signer.listen(from_block_number=result['blockNumber'])
 
         # Validator check transaction
-        # First of all validator checks the link to sourceChainId
-        self.assertEqual(
-            bridge_relay.call_method('links', (self.TARGET_ETH,)),
-            bridge_eth.contract.address
-        )
-        # Validator check backlink from linked contract
-        self.assertEqual(
-            bridge_eth.call_method('links', (self.TARGET_RELAY,)),
-            bridge_relay.contract.address
-        )
-        # Validator get the transaction from other network and check listed
-        tx = api.eth.get_transaction(listed_event['txHash'])
-        _, decoded_input = bridge_eth.contract.decode_function_input(tx['input'])
-        listed_receiver, listed_amount, listed_token_id, is_sent = bridge_relay.call_method(
-            'confirmations', (listed_event['txHash'],)
-        )
-        self.assertEqual(decoded_input['_targetChainId'], self.TARGET_RELAY)
-        self.assertEqual(listed_receiver, decoded_input['_receiver'])
-        self.assertEqual(listed_amount, decoded_input['_amount'])
-        self.assertEqual(is_sent, False)
-        # Validator must check that registered asset matches the listed
-        self.assertEqual(
-            bridge_eth.call_method('hasPair', (decoded_input['_token'], self.TARGET_RELAY)), True
-        )
-        # Validator checks that asset mapped correctly
-        self.assertEqual(
-            bridge_eth.call_method('getDestinationAddress', (decoded_input['_token'], self.TARGET_RELAY)),
-            bridge_relay.call_method('tokens', (listed_token_id - 1,))
-        )
-        # Now validator can confirm transaction
-        bridge_relay.execute_tx('confirm', ([listed_event['txHash']],), {'from': users['validator_relay'].address})
+        validator_config = WorkerConfig()
+        validator_config.eth_private_key = users['validator_relay'].key
+        validator_config.eth_contract_address = bridge_relay.contract.address
+        validator_config.eth_rpc = Config.FRONTIER_RPC
+        validator_config.rpc_urls_file_path = rpc_urls_path
+
+        validator = Validator(validator_config)
+
+        validator.validate(from_block_number=result['blockNumber'])
 
         # Bridge worker execute transfer transaction from its signer
         self.assertEqual(
@@ -246,6 +212,7 @@ class BridgeTestCase(unittest.TestCase):
             90 * ONE_TOKEN
         )
         # Ensure that txHash of transfer registered in contract state
+        listed_token_id = 1
         self.assertEqual(
             bridge_relay.call_method('confirmations', (result['transactionHash'],)),
             # receiver, amount, tokenId, isSent

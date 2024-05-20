@@ -1,3 +1,6 @@
 web3==6.15.1
 py-solc-x==2.0.2
 substrate-interface==1.7.6
+peewee==3.17.3
+psycopg2-binary==2.9.9
+ruamel.yaml==0.18.6

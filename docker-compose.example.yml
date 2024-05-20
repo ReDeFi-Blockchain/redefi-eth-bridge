@@ -1,0 +1,26 @@
+version: "3.5"
+
+services:
+  bridge-db:
+    image: postgres:16.2
+    container_name: bridge-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: bridge
+      POSTGRES_USER: bridge
+      POSTGRES_PASSWORD: bridge
+    volumes:
+      - ./postgresql/bridge:/var/lib/postgresql/data
+
+  bridge-validator:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    image: bridge-validator
+    container_name: bridge-validator
+    environment:
+      ETH_RPC: http://127.0.0.1:9944
+      ETH_RPC_POLL_LATENCY_MS: 1000
+      BRIDGE_CONTRACT_ADDRESS: ''
+      VALIDATOR_PRIVATE_KEY: ''
+    command: python run.py validator

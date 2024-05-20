@@ -1,7 +1,7 @@
 import unittest
 
 from tests.config import Config
-from tests.util import get_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
+from tests.util import get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
 from src.util import ContractHelper, ContractWrapper
 
 
@@ -27,7 +27,7 @@ class BridgeTestCase(unittest.TestCase):
             transfer_balance_substrate(
                 Config.SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
             )
-        cached = get_cache(self.SOLC_VERSION)
+        cached = get_contract_cache(self.SOLC_VERSION)
         deployed = ContractHelper.deploy_by_bytecode(
             api, deployer, ('Eth BAX', 'EBAX', 18, deployer.address, 1_000),
             abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']

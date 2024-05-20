@@ -132,6 +132,15 @@ contract Bridge {
 		pairs.push(PairData(_sourceAddress, _destinationChainId, _destinationAddress));
 	}
 
+	function removePair(address _sourceAddress, uint _destinationChainId) external onlyAdmin {
+		require(hasPair(_sourceAddress, _destinationChainId), "bridge: invalid pair");
+		for(uint i = 0; i < pairs.length; i++) {
+			if(pairs[i].sourceAddress == _sourceAddress && pairs[i].destinationChainId == _destinationChainId && !isPairDeleted[uint16(i)]) {
+				isPairDeleted[uint16(i)] = true;
+			}
+		}
+	}
+
 	function hasPair(address _sourceAddress, uint _destinationChainId) public view returns (bool) {
 		for(uint i = 0; i < pairs.length; i++) {
 			if(pairs[i].sourceAddress == _sourceAddress && pairs[i].destinationChainId == _destinationChainId && !isPairDeleted[uint16(i)]) return true;
