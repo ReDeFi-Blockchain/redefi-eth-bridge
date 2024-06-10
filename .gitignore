@@ -3,3 +3,4 @@ __pycache__
 tests/data/cache
 tests/config/local.py
 docker-compose.yml
+._*

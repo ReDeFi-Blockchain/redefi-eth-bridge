@@ -15,7 +15,8 @@ class WorkerConfig(object):
     eth_rpc: str = os.getenv('ETH_RPC', 'http://127.0.0.1:9944')
     eth_contract_address = os.getenv('ETH_CONTRACT_ADDRESS', util.ADDRESS_0)
     eth_private_key: typing.Optional[str] = os.getenv('ETH_PRIVATE_KEY', None) or None
-    _poll_latency: int = int(os.getenv('ETH_RPC_POLL_LATENCY_MS', '1000'))
+    eth_block_confirmations: int = int(os.getenv('ETH_BLOCK_CONFIRMATIONS', '64'))
+    _poll_latency: int = int(os.getenv('ETH_RPC_POLL_LATENCY_MS', '3000'))
     rpc_urls_file_path: str = os.getenv('ETH_RPC_URLS_FILE', None)
     _rpc_urls = None
 
@@ -40,7 +41,7 @@ class WorkerConfig(object):
 class Worker(object):
     LOGGER_NAME = 'worker.base'
 
-    def __init__(self, config: WorkerConfig = None):
+    def __init__(self, config: WorkerConfig = None, name: typing.Optional[str] = None):
         if config is None:
             config = WorkerConfig()
         self.config = config
@@ -50,6 +51,11 @@ class Worker(object):
             self.account = eth_account.account.Account.from_key(config.eth_private_key)
             util.eth_add_to_auto_sign(self.api, self.account)
         self.log = logging.getLogger(self.LOGGER_NAME)
+        self.bridge = self.get_bridge_contract(
+            self.api, self.config.eth_contract_address, poll_latency=self.config.poll_latency
+        )
+        self.chain_id = int(self.api.eth.chain_id)
+        self.name = self.__class__.__name__.lower() if name is None else name
 
     @classmethod
     def construct_http_api(cls, rpc_url: str):
@@ -72,5 +78,34 @@ class Worker(object):
             return None
         return tx_receipt['blockNumber']
 
-    def listen_blocks(self, last_block: int = 0):
+    def listen_blocks(self, last_block: int = 0) -> int:
         pass
+
+    def listen(self):
+        last_block = self.get_last_block()
+        class_name = self.__class__.__name__.lower()
+
+        while True:
+            previous = last_block
+            last_block = self.listen_blocks(last_block)
+            self.save_last_block(last_block)
+            self.log.info(f'[worker.{class_name}.{self.name}] Scanned blocks {previous} - {last_block}')
+
+    @property
+    def last_block_file_path(self):
+        return os.path.abspath(os.path.join(
+            os.path.dirname(__file__),
+            '..', '..', 'data', f'last_block_{self.__class__.__name__.lower()}_{self.name}.json'
+        ))
+
+    def save_last_block(self, last_block_number: int):
+        copy_path = f'{self.last_block_file_path}.copy'
+        with open(copy_path, 'w', encoding='utf-8') as f:
+            f.write(json.dumps(last_block_number))
+        os.rename(copy_path, self.last_block_file_path)
+
+    def get_last_block(self):
+        if not os.path.exists(self.last_block_file_path):
+            return 0
+        with open(self.last_block_file_path, 'r', encoding='utf-8') as f:
+            return json.loads(f.read())

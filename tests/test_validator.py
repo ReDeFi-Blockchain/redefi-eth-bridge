@@ -181,7 +181,7 @@ class BridgeTestCase(unittest.TestCase):
 
         signer = Signer(signer_config)
 
-        signer.listen(from_block_number=result['blockNumber'])
+        block_numbers = signer.listen(from_block_number=result['blockNumber'])
 
         # Validator check transaction
         validator_config = WorkerConfig()
@@ -192,17 +192,25 @@ class BridgeTestCase(unittest.TestCase):
 
         validator = Validator(validator_config)
 
-        validator.validate(from_block_number=result['blockNumber'])
+        validator.validate(from_block_number=block_numbers[0])
+
+        # Init signer for transfer execution
+        transfer_config = WorkerConfig()
+        transfer_config.eth_private_key = users['signer_relay'].key
+        transfer_config.eth_contract_address = bridge_relay.contract.address
+        transfer_config.eth_rpc = Config.FRONTIER_RPC
+        transfer_config.rpc_urls_file_path = rpc_urls_path
+
+        transfer_worker = Signer(transfer_config)
 
         # Bridge worker execute transfer transaction from its signer
         self.assertEqual(
             bax_relay.call_method('balanceOf', (users['user2'].address,)),
             0
         )
-        bridge_relay.execute_tx(
-            'transfer', ([result['transactionHash'].hex()],),
-            {'from': users['signer_relay'].address}
-        )
+
+        transfer_worker.listen_confirmations(from_block_number=block_numbers[0])
+
         self.assertEqual(
             bax_relay.call_method('balanceOf', (users['user2'].address,)),
             10 * ONE_TOKEN

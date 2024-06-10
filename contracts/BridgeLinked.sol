@@ -30,6 +30,7 @@ contract Bridge {
 	event Deposit(address indexed token, address indexed receiver, uint amount, uint targetChainId);
 	event Transfer(bytes32 indexed txHash, uint amount);
 	event Listed(bytes32 indexed txHash, uint sourceChainId);
+	event Confirmed(bytes32 indexed txHash, uint16 validatorId);
 
 	event NewSigner(address indexed signer);
 	event NewValidator(address indexed signer);
@@ -175,6 +176,10 @@ contract Bridge {
 		return false;
 	}
 
+	function confirmedBy(bytes32 _txHash) public view returns (uint16[] memory) {
+		return confirmations[_txHash].confirmedBy;
+	}
+
 	function confirm(bytes32[] memory _txHashes) external onlyValidator {
 		for(uint i = 0; i < _txHashes.length; i++) {
 			require(confirmations[_txHashes[i]].amount > 0, "bridge: unknown txHash");
@@ -184,6 +189,7 @@ contract Bridge {
 
 		for(uint i = 0; i < _txHashes.length; i++) {
 			confirmations[_txHashes[i]].confirmedBy.push(validatorIds[msg.sender]);
+			emit Confirmed(_txHashes[i], validatorIds[msg.sender]);
 		}
 	}
 

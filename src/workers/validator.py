@@ -1,9 +1,10 @@
 import random
+import time
 import typing
 
 from web3.types import EventData
 
-from .base import Worker, WorkerConfig
+from .base import Worker
 from src import util
 
 
@@ -12,13 +13,6 @@ __all__ = ['Validator']
 
 class Validator(Worker):
     LOGGER_NAME = 'worker.validator'
-
-    def __init__(self, config: WorkerConfig = None):
-        super().__init__(config)
-        self.bridge = self.get_bridge_contract(
-            self.api, self.config.eth_contract_address, poll_latency=self.config.poll_latency
-        )
-        self.chain_id = int(self.api.eth.chain_id)
 
     class ValidatorException(Exception):
         def __init__(self, message: str):
@@ -89,6 +83,7 @@ class Validator(Worker):
 
     def confirm(self, tx_hash: str):
         # Confirm the transaction onchain
+        # TODO: may fails if tokens already sent, need to handle this type of error
         self.bridge.execute_tx('confirm', ([tx_hash],), {'from': self.account.address})
 
     def validate(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
@@ -108,3 +103,12 @@ class Validator(Worker):
                 continue
 
             self.confirm(tx_hash)
+
+    def listen_blocks(self, last_block: int = 0) -> int:
+        current_block = self.api.eth.block_number - self.config.eth_block_confirmations
+        if last_block >= current_block:
+            time.sleep(self.config.poll_latency)
+            return current_block
+        to_block = min(last_block + 10, current_block)
+        self.validate(from_block_number=current_block, to_block_number=to_block)
+        return to_block
