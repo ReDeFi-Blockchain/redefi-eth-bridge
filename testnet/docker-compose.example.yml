@@ -1,0 +1,67 @@
+version: '3.5'
+
+services:
+  relay-node:
+    build:
+      dockerfile: Dockerfile-ganache
+      context: .
+    image: relay-node
+    container_name: relay-node
+    command: ganache --server.host 0.0.0.0 --chain.chainId 47803 --account="0x4c0883a69102937d6231471b5dbb6204fe512961708279d7d9d1e6b5b9456d11,1000000000000000000000000"
+    ports:
+      - 18545:8545
+
+  eth-node:
+    build:
+      dockerfile: Dockerfile-ganache
+      context: .
+    image: eth-node
+    container_name: eth-node
+    command: ganache --server.host 0.0.0.0 --chain.chainId 1 --account="0x4c0883a69102937d6231471b5dbb6204fe512961708279d7d9d1e6b5b9456d11,1000000000000000000000000"
+    ports:
+      - 28545:8545
+
+  relay-bridge-validator:
+    build:
+      dockerfile: testnet/Dockerfile-worker
+      context: ..
+    image: relay-bridge-validator
+    container_name: relay-bridge-validator
+    environment:
+      ETH_RPC: http://relay-node:8545
+      ETH_RPC_POLL_LATENCY_MS: 3000
+      ETH_CONTRACT_ADDRESS: ''
+      ETH_PRIVATE_KEY: ''
+      ETH_BLOCK_CONFIRMATIONS: 0
+      ETH_RPC_URLS_FILE: '/app/urls.json'
+    command: python run.py validator
+
+  relay-bridge-signer-lister:
+    build:
+      dockerfile: testnet/Dockerfile-worker
+      context: ..
+    image: relay-bridge-signer-lister
+    container_name: relay-bridge-signer-lister
+    environment:
+      ETH_RPC: http://eth-node:8545
+      ETH_RPC_POLL_LATENCY_MS: 3000
+      ETH_CONTRACT_ADDRESS: ''
+      ETH_PRIVATE_KEY: ''
+      ETH_BLOCK_CONFIRMATIONS: 0
+      ETH_RPC_URLS_FILE: '/app/urls.json'
+    command: python run.py signer lister
+
+  relay-bridge-signer-transactor:
+    build:
+      dockerfile: testnet/Dockerfile-worker
+      context: ..
+    image: relay-bridge-signer-transactor
+    container_name: relay-bridge-signer-transactor
+    environment:
+      ETH_RPC: http://relay-node:8545
+      ETH_RPC_POLL_LATENCY_MS: 3000
+      ETH_CONTRACT_ADDRESS: ''
+      ETH_PRIVATE_KEY: ''
+      ETH_BLOCK_CONFIRMATIONS: 0
+      ETH_RPC_URLS_FILE: '/app/urls.json'
+    command: python run.py signer transactor

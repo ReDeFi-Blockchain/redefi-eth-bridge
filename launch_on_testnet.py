@@ -1,87 +1,137 @@
 from ruamel.yaml import YAML
 import sys
+import shutil
+import json
 
-from tests.util import get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
+from tests.util import get_contract_cache, get_eth_api_and_account, transfer_balance_eth
 from src.util import ContractHelper, ContractWrapper
 
-if '-h' in sys.argv or '--help' in sys.argv:
-    print(
-        f'Usage:\n  {sys.orig_argv[0]} {sys.argv[0]} [RPC_URL] [SUBSTRATE_WS_URL]\nExample:'
-        f'\n  {sys.orig_argv[0]} {sys.argv[0]}'
-        f'\n  {sys.orig_argv[0]} {sys.argv[0]} http://node.local'
-        f'\n  {sys.orig_argv[0]} {sys.argv[0]} http://node.local ws://ws.local'
-    )
+eth_chain_id = 0
+relay_chain_id = 0
+
+RELAY_RPC = 'http://127.0.0.1:18545'
+ETH_RPC = 'http://127.0.0.1:28545'
+DONOR_KEY = '0x4c0883a69102937d6231471b5dbb6204fe512961708279d7d9d1e6b5b9456d11'
+
+try:
+    relay_api, _ = get_eth_api_and_account(RELAY_RPC)
+    eth_api, _ = get_eth_api_and_account(ETH_RPC)
+    eth_chain_id = int(eth_api.eth.chain_id)
+    relay_chain_id = int(relay_api.eth.chain_id)
+except Exception:
+    pass
+
+
+if eth_chain_id != 1 or relay_chain_id != 47803:
+    shutil.copy('./testnet/docker-compose.example.yml', './testnet/docker-compose.yml')
+    print('Before start you need to run inside testnet directory:\ndocker-compose.yml up -d relay-node eth-node')
     sys.exit(0)
+
+
+def transfer_erc20(erc20: ContractWrapper, from_address: str, to_address: str, amount: int = 100):
+    erc20.execute_tx('approve', (from_address, amount * 10 ** 18), {'from': from_address})
+    erc20.execute_tx('transferFrom', (from_address, to_address, amount * 10 ** 18), {'from': from_address})
+
 
 yaml = YAML()
 
-with open('docker-compose.example.yml', 'r', encoding='utf-8') as f:
+with open('./testnet/docker-compose.example.yml', 'r', encoding='utf-8') as f:
     compose = yaml.load(f)
 
-RPC_URL = sys.argv[1] if len(sys.argv) > 1 else 'http://127.0.0.1:9944'
-SUBSTRATE_WS_URL = sys.argv[2] if len(sys.argv) > 2 else 'ws' + RPC_URL[4:]
-print(f'RPC url: {RPC_URL}\nSubstrate WS url: {SUBSTRATE_WS_URL}')
 
+eth_api, eth_deployer = get_eth_api_and_account(ETH_RPC)
+relay_api, relay_deployer = get_eth_api_and_account(RELAY_RPC)
 
-api, deployer = get_eth_api_and_account(RPC_URL)
-print('Deployer private key:', deployer.key.hex())
-users = {'signer': api.eth.account.create(), 'validator': api.eth.account.create()}
-for user, amount in (
-    (deployer, 100),
-    (users['signer'], 100),
-    (users['validator'], 10)
-):
-    transfer_balance_substrate(
-        'ws' + RPC_URL[4:], '//Alice', {'ethereum': user.address}, amount
-    )
+state = {'eth': {}, 'relay': {}}
+
+print('Eth deployer private key:', eth_deployer.key.hex())
+state['eth']['deployer'] = eth_deployer.key.hex()
+print('Relay deployer private key:', relay_deployer.key.hex())
+state['relay']['deployer'] = relay_deployer.key.hex()
+
+transfer_balance_eth(ETH_RPC, DONOR_KEY, eth_deployer.address, 100)
+transfer_balance_eth(RELAY_RPC, DONOR_KEY, relay_deployer.address, 100)
+
 cached = get_contract_cache('0.8.24')
 deployed = ContractHelper.deploy_by_bytecode(
-    api, deployer, ('Eth BAX', 'EBAX', 18, deployer.address, 1_000),
+    eth_api, eth_deployer, ('Eth BAX', 'EBAX', 18, eth_deployer.address, 1_000),
     abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
 )
-print(f'EBAX ERC-20 address: {deployed["address"]}')
-# ethereum_bax = ContractWrapper(api, deployed['address'], deployed['abi'])
-#
+print(f'Etherem BAX ERC-20 address: {deployed["address"]}')
+eth_bax = ContractWrapper(eth_api, deployed['address'], deployed['abi'])
+state['eth']['bax'] = deployed['address']
+
 deployed = ContractHelper.deploy_by_bytecode(
-    api, deployer, ('Relay BAX', 'RBAX', 18, deployer.address, 1_000),
+    relay_api, relay_deployer, ('Relay BAX', 'RBAX', 18, relay_deployer.address, 1_000),
     abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
 )
-print(f'RBAX ERC-20 address: {deployed["address"]}')
-# relay_bax = ContractWrapper(api, deployed['address'], deployed['abi'])
-#
+print(f'Relay BAX ERC-20 address: {deployed["address"]}')
+relay_bax = ContractWrapper(relay_api, deployed['address'], deployed['abi'])
+state['relay']['bax'] = deployed['address']
+
 deployed = ContractHelper.deploy_by_bytecode(
-    api, deployer, (deployer.address,),
-    abi=cached['bridge_multi_sig']['abi'], bytecode=cached['bridge_multi_sig']['bin']
+    eth_api, eth_deployer, (eth_deployer.address,),
+    abi=cached['bridge_linked']['abi'], bytecode=cached['bridge_linked']['bin']
 )
-print(f'Bridge address: {deployed["address"]}')
-bridge = ContractWrapper(api, deployed['address'], deployed['abi'])
+print(f'Ethereum bridge address: {deployed["address"]}')
+state['eth']['bridge'] = deployed['address']
 
-
-# Add signer account for money transfers
-bridge.execute_tx(
-    'setSigner', (users['signer'].address,),
-    {'from': deployer.address}
+eth_bridge = ContractWrapper(eth_api, deployed['address'], deployed['abi'])
+eth_bridge.execute_tx(
+    'addPair', (state['eth']['bax'], relay_chain_id, state['relay']['bax']),
+    {'from': eth_deployer.address}
 )
+transfer_erc20(eth_bax, eth_deployer.address, state['eth']['bridge'], 100)
 
-# Add validator accounts
-bridge.execute_tx(
-    'addValidators',
-    ([users['validator'].address],),
-    {'from': deployer.address}
+deployed = ContractHelper.deploy_by_bytecode(
+    eth_api, eth_deployer, (eth_deployer.address,),
+    abi=cached['bridge_linked']['abi'], bytecode=cached['bridge_linked']['bin']
 )
+print(f'Relay bridge address: {deployed["address"]}')
+state['relay']['bridge'] = deployed['address']
+
+relay_bridge = ContractWrapper(relay_api, deployed['address'], deployed['abi'])
+relay_bridge.execute_tx(
+    'addPair', (state['relay']['bax'], eth_chain_id, state['eth']['bax']),
+    {'from': relay_deployer.address}
+)
+transfer_erc20(relay_bax, relay_deployer.address, state['relay']['bridge'], 100)
+
+relay_signer = relay_api.eth.account.create()
+relay_validator = relay_api.eth.account.create()
+print(f'Relay signer private key: {relay_signer.key.hex()}')
+state['relay']['signer'] = relay_signer.key.hex()
+print(f'Relay validator private key: {relay_validator.key.hex()}')
+state['relay']['validator'] = relay_validator.key.hex()
+
+relay_bridge.execute_tx('setSigner', (relay_signer.address,), {'from': relay_deployer.address})
+relay_bridge.execute_tx('addValidators', ([relay_validator.address],), {'from': relay_deployer.address})
+transfer_balance_eth(RELAY_RPC, DONOR_KEY, relay_signer.address, 30)
+transfer_balance_eth(RELAY_RPC, DONOR_KEY, relay_validator.address, 30)
 
 # Set required confirmations
-bridge.execute_tx(
-    'setRequiredConfirmations', (1,),
-    {'from': deployer.address}
-)
+relay_bridge.execute_tx('setRequiredConfirmations', (1,),{'from': relay_deployer.address})
 
-compose['services']['bridge-validator']['environment']['ETH_RPC'] = RPC_URL
-compose['services']['bridge-validator']['environment']['ETH_RPC_POLL_LATENCY_MS'] = 3000
-compose['services']['bridge-validator']['environment']['BRIDGE_CONTRACT_ADDRESS'] = bridge.address
-compose['services']['bridge-validator']['environment']['VALIDATOR_PRIVATE_KEY'] = users['validator'].key.hex()
+compose['services']['relay-bridge-validator']['environment']['ETH_CONTRACT_ADDRESS'] = state['relay']['bridge']
+compose['services']['relay-bridge-validator']['environment']['ETH_PRIVATE_KEY'] = state['relay']['validator']
 
+compose['services']['relay-bridge-signer-transactor']['environment']['ETH_CONTRACT_ADDRESS'] = state['relay']['bridge']
+compose['services']['relay-bridge-signer-transactor']['environment']['ETH_PRIVATE_KEY'] = state['relay']['signer']
 
-with open('docker-compose.yml', 'w', encoding='utf-8') as f:
+compose['services']['relay-bridge-signer-lister']['environment']['ETH_CONTRACT_ADDRESS'] = state['eth']['bridge']
+compose['services']['relay-bridge-signer-lister']['environment']['ETH_PRIVATE_KEY'] = state['relay']['signer']
+
+with open('./testnet/docker-compose.yml', 'w', encoding='utf-8') as f:
     yaml.dump(compose, f)
 print('docker-compose.yml created')
+
+with open('./testnet/state.json', 'w', encoding='utf-8') as f:
+    f.write(json.dumps(state, indent=2, ensure_ascii=False))
+print('state.json created')
+
+with open('./testnet/urls.json', 'w', encoding='utf-8') as f:
+    f.write(json.dumps(
+        {relay_chain_id: ['http://relay-node:8545'], eth_chain_id: ['http://eth-node:8545']},
+        indent=2, ensure_ascii=False
+    ))
+print('urls.json created')

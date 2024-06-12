@@ -2,5 +2,7 @@
 __pycache__
 tests/data/cache
 tests/config/local.py
-docker-compose.yml
+testnet/docker-compose.yml
+testnet/urls.json
+testnet/state.json
 ._*

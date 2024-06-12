@@ -1,21 +1,19 @@
-import unittest
-
-from tests.config import Config
-from tests.util import get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate
+from tests.base import EthTestCase
+from tests.util import get_contract_cache, eth_add_to_auto_sign
 from src.util import ContractHelper, ContractWrapper
 
 
 ONE_TOKEN = 10 ** 18
 
 
-class BridgeTestCase(unittest.TestCase):
+class BridgeTestCase(EthTestCase):
     SOLC_VERSION = '0.8.24'
 
     TARGET_ETH = 1
     TARGET_RELAY = 47803
 
     def test_bridge_base(self):
-        api, deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
+        api, deployer = self.get_api_and_deployer()
         user1 = api.eth.account.create()
         eth_add_to_auto_sign(api, user1)
         user2 = api.eth.account.create()
@@ -24,9 +22,7 @@ class BridgeTestCase(unittest.TestCase):
             (user1, 10),
             (user2, 10),
         ):
-            transfer_balance_substrate(
-                Config.SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
-            )
+            self.transfer_balance(user.address, amount)
         cached = get_contract_cache(self.SOLC_VERSION)
         deployed = ContractHelper.deploy_by_bytecode(
             api, deployer, ('Eth BAX', 'EBAX', 18, deployer.address, 1_000),

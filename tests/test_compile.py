@@ -1,16 +1,14 @@
 import os
-import unittest
 
 import solcx
 
-from tests.config import Config
-from tests.util import transfer_balance_substrate, get_eth_api_and_account
+from tests.base import EthTestCase
 from src.util import EthBalanceChecker, ContractHelper, ContractWrapper
 
 CONTRACTS_DIR = os.path.join('..', 'contracts')
 
 
-class CompileTestCase(unittest.TestCase):
+class CompileTestCase(EthTestCase):
     SOLC_VERSION = '0.8.24'
     DEPLOYER_BALANCE = 30
 
@@ -19,13 +17,11 @@ class CompileTestCase(unittest.TestCase):
         solcx.install_solc(cls.SOLC_VERSION)
 
     def test_base_compile(self):
-        api, deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
+        api, deployer = self.get_api_and_deployer()
 
         with EthBalanceChecker(api, deployer.address) as checker:
-            transfer_balance_substrate(
-                Config.SUBSTRATE_WS, Config.SUBSTRATE_DONOR,
-                receiver={'ethereum': deployer.address}, tokens=self.DEPLOYER_BALANCE
-            )
+            self.transfer_balance(deployer.address, self.DEPLOYER_BALANCE)
+
         print('balance', checker.balance)
 
         with EthBalanceChecker(api, deployer.address) as checker:
@@ -50,13 +46,11 @@ class CompileTestCase(unittest.TestCase):
         self.assertEqual(message, 'second')
 
     def test_compile_bridge(self):
-        api, deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
+        api, deployer = self.get_api_and_deployer()
 
         with EthBalanceChecker(api, deployer.address) as checker:
-            transfer_balance_substrate(
-                Config.SUBSTRATE_WS, Config.SUBSTRATE_DONOR,
-                receiver={'ethereum': deployer.address}, tokens=self.DEPLOYER_BALANCE
-            )
+            self.transfer_balance(deployer.address, self.DEPLOYER_BALANCE)
+
         print('balance', checker.balance)
 
         with EthBalanceChecker(api, deployer.address) as checker:

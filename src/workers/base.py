@@ -5,7 +5,7 @@ import typing
 
 import web3
 import eth_account.account
-from src import types, util
+from src import bridge_types as types, util
 
 
 __all__ = ['Worker', 'WorkerConfig']

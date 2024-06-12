@@ -10,8 +10,8 @@ from src.util import ContractHelper, evm_to_address, eth_add_to_auto_sign
 
 
 __all__ = [
-    'transfer_balance_substrate', 'get_eth_api_and_account', 'eth_add_to_auto_sign', 'get_contract_cache',
-    'write_cache'
+    'transfer_balance_substrate', 'transfer_balance_eth', 'get_eth_api_and_account', 'eth_add_to_auto_sign', 
+    'get_contract_cache', 'write_cache'
 ]
 
 
@@ -89,8 +89,21 @@ def transfer_balance_substrate(
         sub_api.submit_extrinsic(extrinsic, wait_for_inclusion=True)
 
 
-def get_eth_api_and_account(rpc_url: str) -> typing.Tuple[web3.Web3, eth_account.account.LocalAccount]:
+def transfer_balance_eth(rpc_url: str, donor_private_key: str, receiver: str, tokens: int = 1):
     api = web3.Web3(web3.Web3.HTTPProvider(rpc_url))
-    account = api.eth.account.create()
+    account = eth_account.account.Account.from_key(donor_private_key)
+    eth_add_to_auto_sign(api, account)
+    tx_hash = api.eth.send_transaction({'from': account.address, 'to': receiver, 'value': tokens * 10 ** 18})
+    api.eth.wait_for_transaction_receipt(tx_hash)
+
+
+def get_eth_api_and_account(
+        rpc_url: str, account_private_key: typing.Optional[str] = None
+) -> typing.Tuple[web3.Web3, eth_account.account.LocalAccount]:
+    api = web3.Web3(web3.Web3.HTTPProvider(rpc_url))
+    account = (
+        api.eth.account.create() if account_private_key is None
+        else eth_account.account.Account.from_key(account_private_key)
+    )
     eth_add_to_auto_sign(api, account)
     return api, account

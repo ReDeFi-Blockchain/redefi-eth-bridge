@@ -1,14 +1,12 @@
-import unittest
-
+from tests.base import EthTestCase
 from tests.config import Config
 from src.workers.base import Worker
-from tests.util import get_eth_api_and_account, transfer_balance_substrate
 
 
-class WorkerTestCase(unittest.TestCase):
+class WorkerTestCase(EthTestCase):
     def test_check_tx_block(self):
-        api, account = get_eth_api_and_account(Config.FRONTIER_RPC)
-        transfer_balance_substrate(Config.SUBSTRATE_WS, Config.SUBSTRATE_DONOR, {'ethereum': account.address}, 50)
+        api, account = self.get_api_and_deployer()
+        self.transfer_balance(account.address, 50)
         user = api.eth.account.create()
         self.assertEqual(api.eth.get_balance(user.address), 0)
         value = 3 * 10 ** 16
@@ -19,6 +17,8 @@ class WorkerTestCase(unittest.TestCase):
         })
         tx_receipt = api.eth.wait_for_transaction_receipt(tx_hash)
         self.assertEqual(api.eth.get_balance(user.address), value)
-        block_number = Worker.check_tx_block(tx_hash, Config.FRONTIER_RPC)
+        block_number = Worker.check_tx_block(
+            tx_hash, Config.FRONTIER_RPC if Config.RUN_MODE == Config.MODE_SUBSTRATE else Config.GANACHE_RPC
+        )
         self.assertEqual(block_number, tx_receipt['blockNumber'])
 

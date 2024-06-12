@@ -1,9 +1,5 @@
-import unittest
-
-from tests.config import Config
-from tests.util import (
-    get_contract_cache, get_eth_api_and_account, eth_add_to_auto_sign, transfer_balance_substrate, write_cache
-)
+from tests.base import EthTestCase
+from tests.util import get_contract_cache, eth_add_to_auto_sign, write_cache
 from src.util import ContractHelper, ContractWrapper
 from src.workers import Validator, WorkerConfig, Signer
 
@@ -11,7 +7,7 @@ from src.workers import Validator, WorkerConfig, Signer
 ONE_TOKEN = 10 ** 18
 
 
-class BridgeTestCase(unittest.TestCase):
+class BridgeTestCase(EthTestCase):
     SOLC_VERSION = '0.8.24'
 
     def init_bridge(self, api, deployer, code, signer_address, validator_address, bax_address):
@@ -51,12 +47,12 @@ class BridgeTestCase(unittest.TestCase):
         return bridge
 
     def test_bridge_linked_validator(self):
-        api_relay, _deployer = get_eth_api_and_account(Config.FRONTIER_RPC)
-        api_eth, _deployer_eth = get_eth_api_and_account(Config.SECOND_FRONTIER_RPC)
+        api_relay, _deployer = self.get_api_and_deployer()
+        api_eth, _deployer_eth = self.get_api_and_deployer_second()
         target_eth = int(api_eth.eth.chain_id)
         target_relay = int(api_relay.eth.chain_id)
         rpc_urls_path = write_cache(
-            'rpc_urls.json', {target_eth: [Config.SECOND_FRONTIER_RPC], target_relay: [Config.FRONTIER_RPC]}
+            'rpc_urls.json', {target_eth: [self.get_second_rpc()], target_relay: [self.get_first_rpc()]}
         )
         users = {'user2': api_relay.eth.account.create(), 'deployer_eth': _deployer_eth, 'deployer_relay': _deployer}
         for user_key in ('signer_eth', 'validator_eth', 'user1'):
@@ -69,16 +65,13 @@ class BridgeTestCase(unittest.TestCase):
             *((users[x], 100) for x in ('deployer_relay', 'signer_relay')),
             *((users[x], 10) for x in ('validator_relay',))
         ):
-            transfer_balance_substrate(
-                Config.SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
-            )
+            self.transfer_balance(user.address, amount)
         for user, amount in (
             *((users[x], 100) for x in ('deployer_eth', 'signer_eth',)),
             *((users[x], 10) for x in ('validator_eth', 'user1'))
         ):
-            transfer_balance_substrate(
-                Config.SECOND_SUBSTRATE_WS, '//Alice', {'ethereum': user.address}, amount
-            )
+            self.transfer_balance_second(user.address, amount)
+
         cached = get_contract_cache(self.SOLC_VERSION)
         deployed = ContractHelper.deploy_by_bytecode(
             api_eth, users['deployer_eth'], ('Eth BAX', 'EBAX', 18, users['deployer_eth'].address, 1_000),
@@ -176,18 +169,18 @@ class BridgeTestCase(unittest.TestCase):
         signer_config = WorkerConfig()
         signer_config.eth_private_key = users['signer_relay'].key
         signer_config.eth_contract_address = bridge_eth.contract.address
-        signer_config.eth_rpc = Config.SECOND_FRONTIER_RPC
+        signer_config.eth_rpc = self.get_second_rpc()
         signer_config.rpc_urls_file_path = rpc_urls_path
 
         signer = Signer(signer_config)
 
-        block_numbers = signer.listen(from_block_number=result['blockNumber'])
+        block_numbers = signer.listen_deposits(from_block_number=result['blockNumber'])
 
         # Validator check transaction
         validator_config = WorkerConfig()
         validator_config.eth_private_key = users['validator_relay'].key
         validator_config.eth_contract_address = bridge_relay.contract.address
-        validator_config.eth_rpc = Config.FRONTIER_RPC
+        validator_config.eth_rpc = self.get_first_rpc()
         validator_config.rpc_urls_file_path = rpc_urls_path
 
         validator = Validator(validator_config)
@@ -198,7 +191,7 @@ class BridgeTestCase(unittest.TestCase):
         transfer_config = WorkerConfig()
         transfer_config.eth_private_key = users['signer_relay'].key
         transfer_config.eth_contract_address = bridge_relay.contract.address
-        transfer_config.eth_rpc = Config.FRONTIER_RPC
+        transfer_config.eth_rpc = self.get_first_rpc()
         transfer_config.rpc_urls_file_path = rpc_urls_path
 
         transfer_worker = Signer(transfer_config)

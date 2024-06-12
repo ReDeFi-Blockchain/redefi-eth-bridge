@@ -7,7 +7,7 @@ import solcx
 from substrateinterface.utils.ss58 import ss58_encode, ss58_decode
 from substrateinterface.utils.hasher import blake2_256
 
-from src import types
+from src import bridge_types as types
 
 
 __all__ = [

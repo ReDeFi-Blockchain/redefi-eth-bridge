@@ -1,11 +1,12 @@
 FROM python:3.11-slim
 
-RUN mkdir /app
+RUN mkdir -p /app/data
 
 WORKDIR /app
 
-ADD src .
+ADD src ./src
 ADD run.py .
 ADD requirements.txt .
+ADD testnet/urls.json .
 
 RUN pip install -r requirements.txt
