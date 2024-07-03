@@ -54,7 +54,7 @@ class CompileTestCase(EthTestCase):
         print('balance', checker.balance)
 
         with EthBalanceChecker(api, deployer.address) as checker:
-            with open(os.path.join(CONTRACTS_DIR, 'Bridge.sol'), 'r', encoding='utf-8') as f:
+            with open(os.path.join(CONTRACTS_DIR, 'BridgeLinked.sol'), 'r', encoding='utf-8') as f:
                 contract_data = ContractHelper.deploy_by_code(
                     api, deployer,
                     code=f.read(), constructor_args=(deployer.address,), solc_version=self.SOLC_VERSION,
