@@ -53,21 +53,6 @@ transfer_balance_eth(ETH_RPC, DONOR_KEY, eth_deployer.address, 100)
 transfer_balance_eth(RELAY_RPC, DONOR_KEY, relay_deployer.address, 100)
 
 cached = get_contract_cache('0.8.24')
-deployed = ContractHelper.deploy_by_bytecode(
-    eth_api, eth_deployer, ('Eth BAX', 'EBAX', 18, eth_deployer.address, 1_000),
-    abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
-)
-print(f'Etherem BAX ERC-20 address: {deployed["address"]}')
-eth_bax = ContractWrapper(eth_api, deployed['address'], deployed['abi'])
-state['eth']['bax'] = deployed['address']
-
-deployed = ContractHelper.deploy_by_bytecode(
-    relay_api, relay_deployer, ('Relay BAX', 'RBAX', 18, relay_deployer.address, 1_000),
-    abi=cached['erc20']['abi'], bytecode=cached['erc20']['bin']
-)
-print(f'Relay BAX ERC-20 address: {deployed["address"]}')
-relay_bax = ContractWrapper(relay_api, deployed['address'], deployed['abi'])
-state['relay']['bax'] = deployed['address']
 
 deployed = ContractHelper.deploy_by_bytecode(
     eth_api, eth_deployer, (eth_deployer.address,),
@@ -77,11 +62,6 @@ print(f'Ethereum bridge address: {deployed["address"]}')
 state['eth']['bridge'] = deployed['address']
 
 eth_bridge = ContractWrapper(eth_api, deployed['address'], deployed['abi'])
-eth_bridge.execute_tx(
-    'addPair', (state['eth']['bax'], relay_chain_id, state['relay']['bax']),
-    {'from': eth_deployer.address}
-)
-transfer_erc20(eth_bax, eth_deployer.address, state['eth']['bridge'], 100)
 
 deployed = ContractHelper.deploy_by_bytecode(
     eth_api, eth_deployer, (eth_deployer.address,),
@@ -91,11 +71,6 @@ print(f'Relay bridge address: {deployed["address"]}')
 state['relay']['bridge'] = deployed['address']
 
 relay_bridge = ContractWrapper(relay_api, deployed['address'], deployed['abi'])
-relay_bridge.execute_tx(
-    'addPair', (state['relay']['bax'], eth_chain_id, state['eth']['bax']),
-    {'from': relay_deployer.address}
-)
-transfer_erc20(relay_bax, relay_deployer.address, state['relay']['bridge'], 100)
 
 relay_signer = relay_api.eth.account.create()
 relay_validator = relay_api.eth.account.create()
