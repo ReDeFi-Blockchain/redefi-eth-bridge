@@ -5,7 +5,7 @@ interface IERC20 {
 	function owner() external view returns (address);
 	function balanceOf(address account) external view returns (uint256);
 
-	function mintTo(address account, uint256 amount) external;
+	function mint(address account, uint256 amount) external;
 	function burnFrom(address account, uint256 amount) external;
 }
 
@@ -250,7 +250,7 @@ contract Bridge {
 					TransferHelper.safeTransferETH(_to, _amount);
 				} else {
 					if (isToken[_token].isOwn) {
-						IERC20(_token).mintTo(_to, _amount);
+						IERC20(_token).mint(_to, _amount);
 					} else {
 						TransferHelper.safeTransfer(_token, _to, _amount);
 					}

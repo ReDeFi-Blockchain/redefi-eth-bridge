@@ -2,6 +2,7 @@ import json
 import os
 import typing
 
+import solcx
 import web3
 import eth_account.account
 import substrateinterface
@@ -39,18 +40,13 @@ def contract_cache_path(solc_version='0.8.24'):
 
 
 def build_cache(solc_version='0.8.24'):
-    with open(os.path.join(CONTRACTS_PATH, 'Bridge.sol'), 'r', encoding='utf-8') as f:
-        bridge_interface = ContractHelper.compile(f.read(), solc_version=solc_version, contract_name='Bridge')
-    with open(os.path.join(CONTRACTS_PATH, 'BridgeMultiSig.sol'), 'r', encoding='utf-8') as f:
-        multi_sig_interface = ContractHelper.compile(f.read(), solc_version=solc_version, contract_name='Bridge')
+    solcx.install_solc(solc_version)
     with open(os.path.join(CONTRACTS_PATH, 'BridgeLinked.sol'), 'r', encoding='utf-8') as f:
         linked_interface = ContractHelper.compile(f.read(), solc_version=solc_version, contract_name='Bridge')
     with open(os.path.join(DATA_DIR, 'erc20.sol'), 'r', encoding='utf-8') as f:
         erc20_interface = ContractHelper.compile(f.read(), solc_version=solc_version, contract_name='Token')
     cache_data = {
         'erc20': erc20_interface,
-        'bridge': bridge_interface,
-        'bridge_multi_sig': multi_sig_interface,
         'bridge_linked': linked_interface
     }
     os.makedirs(os.path.join(DATA_DIR, 'cache'), exist_ok=True)
