@@ -1,30 +1,34 @@
 import {ethers} from "hardhat";
 import config from "../config";
 import { Wallet } from "ethers";
-import { IERC20__factory } from "../typechain-types";
+import { ERC20__factory } from "../typechain-types";
 
 it("can connect and do something", async () => {
-  const redefi = new ethers.JsonRpcProvider(config.redefi.url);
-  const ethereum = new ethers.JsonRpcProvider(config.ethereum.url);
+  const redNetwork = new ethers.JsonRpcProvider(config.redefi.url);
+  const ethNetwork = new ethers.JsonRpcProvider(config.ethereum.url);
   
-  const signerRedefi = new Wallet(config.redefi.signerKey).connect(redefi);
-  const signerEthereum = new Wallet(config.ethereum.signerKey).connect(ethereum);
+  const signerRed = new Wallet(config.redefi.signerKey).connect(redNetwork);
+  const signerEth = new Wallet(config.ethereum.signerKey).connect(ethNetwork);
 
-  const baxRedefi = IERC20__factory.connect(config.redefi.bax).connect(redefi);
-  const baxEthereum = IERC20__factory.connect(config.ethereum.bax).connect(ethereum);
 
-  const balanceRedefi = await redefi.getBalance(signerRedefi);
-  const balanceEthereum = await redefi.getBalance(signerEthereum);
+  const baxRed = ERC20__factory.connect(config.redefi.bax).connect(redNetwork);
+  const baxEth = ERC20__factory.connect(config.ethereum.bax).connect(ethNetwork);
 
-  const baxBalanceRedefi = await baxRedefi.balanceOf(signerRedefi);
-  const baxBalanceEthereum = await baxEthereum.balanceOf(signerEthereum);
+  const balanceNativeRed = await redNetwork.getBalance(signerRed);
+  const balanceNativeEth = await redNetwork.getBalance(signerEth);
 
-  console.log("ReDeFi Bax balance:", baxBalanceRedefi);
-  console.log("Ehtereum Bax balance:", baxBalanceEthereum);
+  const balanceBaxRed = await baxRed.balanceOf(signerRed);
+  const balanceBaxEth = await baxEth.balanceOf(signerEth);
 
-  console.log("ReDeFi signer:", signerRedefi.address);
-  console.log("Ethereum signer:", signerEthereum.address);
+  const totalSupplyBaxRed = await baxRed.totalSupply();
+  const totalSupplyBaxEth = await baxEth.totalSupply();
 
-  console.log("Balance on ReDeFi", balanceRedefi);
-  console.log("Balance on Ethereum", balanceEthereum);
+  console.log("ReDeFi Bax balance:", balanceBaxRed);
+  console.log("Ehtereum Bax balance:", balanceBaxEth);
+
+  console.log("ReDeFi signer:", signerRed.address);
+  console.log("Ethereum signer:", signerEth.address);
+
+  console.log("Balance on ReDeFi", balanceNativeRed);
+  console.log("Balance on Ethereum", balanceNativeEth);
 });
