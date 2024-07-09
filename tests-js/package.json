@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "compile": "npx hardhat compile --force"
+    "compile": "npx hardhat compile --force",
+    "unit-nodes": "npx hardhat node --port 3003 & npx hardhat node --port 3004"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.7",
