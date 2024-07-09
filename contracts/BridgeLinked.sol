@@ -35,10 +35,12 @@ contract Bridge {
 	event NewSigner(address indexed signer);
 	event NewValidator(address indexed signer);
 	event RemovedValidator(address indexed signer);
+	event MaintenanceState(bool indexed state);
 
 	address public immutable owner;
 	address public immutable admin;
 	address public signer;
+	bool public isMaintenanceEnabled;
 
 	mapping(address => uint16) public validatorIds;
 	address[] public validators;
@@ -69,6 +71,7 @@ contract Bridge {
 	struct TokenData {
 		uint16 tokenId;
 		bool isOwn;
+		mapping(address => uint256) funds;
 	}
 
 	mapping(address => TokenData) public isToken;
@@ -98,7 +101,17 @@ contract Bridge {
 		_;
 	}
 
+	modifier onlyWithActiveBridge() {
+		require(!isMaintenanceEnabled);
+		_;
+	}
+
 	receive() external payable {}
+
+	function switchMaintenance(bool _state) external onlyAdmin {
+		isMaintenanceEnabled = _state;
+		emit MaintenanceState(_state);
+	}
 
 	function setSigner(address _signer) external onlyAdmin {
 		signer = _signer;
@@ -204,7 +217,35 @@ contract Bridge {
 		}
 	}
 
-	function deposit(address _receiver, address _token, uint _amount, uint _targetChainId) external payable {
+	function addFunds(address _token, uint256 _amount) external payable onlyWithActiveBridge {
+		require(_amount > 0, "bridge: amount must be greater than zero");
+		require(isToken[_token].tokenId > 0, "bridge: token should be registered first");
+		require(!isToken[_token].isOwn, "bridge: no need any funds for owned tokens");
+		if(_token == address(0)) {
+			require(msg.value == _amount, "bridge: invalid amount");
+		}
+		else {
+			TransferHelper.safeTransferFrom(_token, msg.sender, address(this), _amount);
+		}
+		isToken[_token].funds[msg.sender] += _amount;
+	}
+
+	function withdrawFunds(address _token, uint256 _amount) external payable {
+		require(_amount > 0, "bridge: amount must be greater than zero");
+		require(isToken[_token].tokenId > 0, "bridge: token should be registered first");
+		require(!isToken[_token].isOwn, "bridge: no need any funds for owned tokens");
+		require(isToken[_token].funds[msg.sender] >= _amount, "bridge: invalid amount");
+		if(_token == address(0)) {
+			TransferHelper.safeTransferETH(msg.sender, _amount);
+		}
+		else {
+			TransferHelper.safeTransfer(_token, msg.sender, _amount);
+		}
+		isToken[_token].funds[msg.sender] -= _amount;
+	}
+
+	function deposit(address _receiver, address _token, uint _amount, uint _targetChainId) external payable onlyWithActiveBridge {
+		require(_amount > 0, "bridge: amount must be greater than zero");
 		require(msg.sender.code.length == 0, "bridge: only personal");
 		require(msg.sender != address(0) && _receiver != address(0), "bridge: zero receiver");
 		require(isToken[_token].tokenId > 0, "bridge: unable to deposit unregistered token");

@@ -147,17 +147,17 @@ class BridgeTestCase(EthTestCase):
             10 * ONE_TOKEN
         )
 
-        # At first we need to give contract balance in other token to transfer
+        # At first, we need to give contract balance in other token to transfer
         self.assertEqual(
             bax_relay.call_method('balanceOf', (bridge_relay.contract.address,)),
             0
         )
         bax_relay.execute_tx(
-            'approve', (users['deployer_relay'].address, 1000 * ONE_TOKEN),
+            'approve', (bridge_relay.contract.address, 100 * ONE_TOKEN),
             {'from': users['deployer_relay'].address}
         )
-        bax_relay.execute_tx(
-            'transferFrom', (users['deployer_relay'].address, bridge_relay.contract.address, 100 * ONE_TOKEN),
+        bridge_relay.execute_tx(
+            'addFunds', (bax_relay.contract.address, 100 * ONE_TOKEN),
             {'from': users['deployer_relay'].address}
         )
         self.assertEqual(
