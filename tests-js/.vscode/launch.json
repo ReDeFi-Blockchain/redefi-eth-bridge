@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Hardhat Test",
+      "type": "node",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["hardhat", "test", "--no-compile", "${file}"]
+    },
+    {
+      "name": "Hardhat Script",
+      "type": "node",
+      "request": "launch",
+      "console": "integratedTerminal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["hardhat", "run", "--no-compile", "${file}"]
+    }
+  ]
+}

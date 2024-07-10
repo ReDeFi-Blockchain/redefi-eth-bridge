@@ -1,8 +1,5 @@
-/node_modules
 node_modules
-package-lock.json
 .env
-.vscode
 
 # Hardhat files
 /cache
@@ -18,3 +15,6 @@ package-lock.json
 
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
+
+# copy of the Bridge
+/contracts/BridgeLinked.sol
