@@ -93,6 +93,45 @@ describe('Owner', () => {
     const link = await bridge.links(CHAIN_ID);
     expect(link).to.eq(randomAddress);
   });
+
+  it('can add a pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+
+    const expectedPair = [
+      SOURCE_ADDRESS,
+      CHAIN_ID,
+      DESTINATION_ADDRESS
+    ];
+
+    expect(await bridge.hasPair(SOURCE_ADDRESS, CHAIN_ID)).to.be.true;
+    expect(await bridge.pairs(0)).to.deep.eq(expectedPair);
+    expect(await bridge.isPairDeleted(0)).to.be.false;
+  });
+
+  it('can remove pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+
+    const expectedPair = [
+      SOURCE_ADDRESS,
+      CHAIN_ID,
+      DESTINATION_ADDRESS
+    ];
+    const expectedPairId = 0;
+    expect(await bridge.pairs(expectedPairId)).to.deep.eq(expectedPair);
+
+    await bridge.removePair(SOURCE_ADDRESS, CHAIN_ID);
+    expect(await bridge.pairs(0)).to.deep.eq(expectedPair);
+    expect(await bridge.hasPair(SOURCE_ADDRESS, CHAIN_ID)).to.be.false;
+    expect(await bridge.isPairDeleted(expectedPairId)).to.be.true;
+  });
 });
 
 describe('Admin', () => {
@@ -203,6 +242,65 @@ describe('Admin', () => {
     await expect(bridge.addLink(CHAIN_ID, randomAddress))
       .revertedWith('bridge: link for this contract already set');
   });
+
+  it('can add a pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+
+    const expectedPair = [
+      SOURCE_ADDRESS,
+      CHAIN_ID,
+      DESTINATION_ADDRESS
+    ];
+
+    expect(await bridge.hasPair(SOURCE_ADDRESS, CHAIN_ID)).to.be.true;
+    expect(await bridge.pairs(0)).to.deep.eq(expectedPair);
+    expect(await bridge.isPairDeleted(0)).to.be.false;
+    expect(await bridge.getDestinationAddress(SOURCE_ADDRESS, CHAIN_ID)).to.eq(DESTINATION_ADDRESS);
+  });
+
+  it('cannot add one pair twice', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+    await expect(bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS))
+      .revertedWith('bridge: pair already exists');
+  });
+
+
+  it('can remove pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+
+    const expectedPair = [
+      SOURCE_ADDRESS,
+      CHAIN_ID,
+      DESTINATION_ADDRESS
+    ];
+    const expectedPairId = 0;
+    expect(await bridge.pairs(expectedPairId)).to.deep.eq(expectedPair);
+
+    await bridge.removePair(SOURCE_ADDRESS, CHAIN_ID);
+    expect(await bridge.pairs(0)).to.deep.eq(expectedPair);
+    expect(await bridge.hasPair(SOURCE_ADDRESS, CHAIN_ID)).to.be.false;
+    expect(await bridge.isPairDeleted(expectedPairId)).to.be.true;
+  });
+
+  it('cannot remove non-registered pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+
+    await expect(bridge.removePair(SOURCE_ADDRESS, CHAIN_ID))
+      .revertedWith('bridge: invalid pair');
+  });
 });
 
 describe('Non-admin', () => {
@@ -241,6 +339,34 @@ describe('Non-admin', () => {
     const randomAddress = ethers.getCreateAddress({from: admin.address, nonce: 2222});
 
     await expect(bridge.addLink(CHAIN_ID, randomAddress))
+      .revertedWithoutReason();
+  });
+
+  it('cannot add pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await expect(bridge.addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS))
+      .revertedWithoutReason();
+  });
+
+  it('cannot remove pair', async () => {
+    const CHAIN_ID = 11189;
+    const SOURCE_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 123});
+    const DESTINATION_ADDRESS = ethers.getCreateAddress({from: owner.address, nonce: 124});
+
+    await bridge.connect(admin).addPair(SOURCE_ADDRESS, CHAIN_ID, DESTINATION_ADDRESS);
+
+    const expectedPair = [
+      SOURCE_ADDRESS,
+      CHAIN_ID,
+      DESTINATION_ADDRESS
+    ];
+    const expectedPairId = 0;
+    expect(await bridge.pairs(expectedPairId)).to.deep.eq(expectedPair);
+
+    await expect(bridge.removePair(SOURCE_ADDRESS, CHAIN_ID))
       .revertedWithoutReason();
   });
 });
