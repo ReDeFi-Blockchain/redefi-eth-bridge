@@ -98,6 +98,19 @@
       {
         "indexed": true,
         "internalType": "address",
+        "name": "admin",
+        "type": "address"
+      }
+    ],
+    "name": "NewAdmin",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "address",
         "name": "signer",
         "type": "address"
       }
@@ -111,7 +124,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "signer",
+        "name": "validator",
         "type": "address"
       }
     ],
@@ -124,7 +137,7 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "signer",
+        "name": "validator",
         "type": "address"
       }
     ],
@@ -629,6 +642,19 @@
       }
     ],
     "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "_admin",
+        "type": "address"
+      }
+    ],
+    "name": "setAdmin",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
