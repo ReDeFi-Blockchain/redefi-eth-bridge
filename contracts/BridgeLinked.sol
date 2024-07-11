@@ -32,13 +32,14 @@ contract Bridge {
 	event Listed(bytes32 indexed txHash, uint sourceChainId);
 	event Confirmed(bytes32 indexed txHash, uint16 validatorId);
 
+	event NewAdmin(address indexed admin);
 	event NewSigner(address indexed signer);
-	event NewValidator(address indexed signer);
-	event RemovedValidator(address indexed signer);
+	event NewValidator(address indexed validator);
+	event RemovedValidator(address indexed validator);
 	event MaintenanceState(bool indexed state);
 
 	address public immutable owner;
-	address public immutable admin;
+	address public admin;
 	address public signer;
 	bool public isMaintenanceEnabled;
 
@@ -108,6 +109,11 @@ contract Bridge {
 
 	receive() external payable {}
 
+	function setAdmin(address _admin) external onlyOwner {
+		admin = _admin;
+		emit NewAdmin(_admin);
+	}
+
 	function switchMaintenance(bool _state) external onlyAdmin {
 		isMaintenanceEnabled = _state;
 		emit MaintenanceState(_state);
@@ -129,7 +135,7 @@ contract Bridge {
 	function addValidators(address[] memory _validators) external onlyAdmin {
 		for(uint i = 0; i < _validators.length; i++) {
 			require(validators.length <= type(uint16).max, "bridge: validators count exceeds uint16 range");
-			require(!isValidator(_validators[i]), "bridge: validator already exists");
+			require(validatorIds[_validators[i]] < 1, "bridge: validator already exists");
 			validators.push(_validators[i]);
 			validatorIds[_validators[i]] = uint16(validators.length);
 			emit NewValidator(_validators[i]);
@@ -170,7 +176,7 @@ contract Bridge {
 	}
 
 	function changeValidatorState(address _validator, bool _isDeleted) external onlyAdmin {
-		require(isValidator(_validator), "bridge: unable to change state of unknown validator");
+		require(validatorIds[_validator] > 0, "bridge: unable to change state of unknown validator");
 		require(isValidatorDeleted[_validator] != _isDeleted, "bridge: validator state: nothing to change");
 		isValidatorDeleted[_validator] = _isDeleted;
 		if(_isDeleted) {
