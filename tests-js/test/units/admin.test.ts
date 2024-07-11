@@ -2,7 +2,7 @@ import { expect } from 'chai';
 import { getRessetableConfig } from '../../fixtures/resettable';
 import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { Bridge } from '../../typechain-types';
+import { Bridge, TestERC20 } from '../../typechain-types';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 
 let bridge: Bridge;
@@ -10,13 +10,18 @@ let owner: HardhatEthersSigner;
 let admin: HardhatEthersSigner;
 let user: HardhatEthersSigner;
 let signers: HardhatEthersSigner[];
+let tokens: TestERC20[];
 
 beforeEach(async () => {
-  ({bridge, owner, admin, user, signers} = await loadFixture(getRessetableConfig));
+  ({bridge, owner, admin, user, signers, tokens} = await loadFixture(getRessetableConfig));
 });
 
 it('Owner set during the deploy transaction', async () => {
   expect(await bridge.owner()).to.eq(owner);
+});
+
+it.skip('[TODO] Owner can set a new admin', async () => {
+
 });
 
 it('Admin set during the deploy transaction', async () => {
@@ -46,10 +51,6 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
 
       const signerAfter = await bridge.getFunction('signer')();
       expect(signerAfter).to.eq(newSigner.address);
-    });
-
-    it.skip('[TODO] can set a new admin', async () => {
-
     });
 
     it('can switch maintenance mode, MaintenanceState event emited', async () => {
@@ -98,6 +99,50 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       expect(await bridge.isValidator(validator2)).to.be.true;
     });
 
+    it('can change validator\'s state to deleted, RemovedValidator event emited', async () => {
+      const [validator] = signers;
+
+      await expect(bridge.addValidators([validator]))
+        .to.emit(bridge, 'NewValidator').withArgs(validator.address)
+
+      expect(await bridge.isValidator(validator)).to.be.true;
+      expect(await bridge.isValidatorDeleted(validator)).to.be.false;
+
+      await expect(bridge.changeValidatorState(validator, true))
+        .to.emit(bridge, 'RemovedValidator')
+        .withArgs(validator.address);
+      
+      expect(await bridge.isValidator(validator)).to.be.false;
+      expect(await bridge.isValidatorDeleted(validator)).to.be.true;
+    });
+
+    it('can change validator\'s state from deleted to active, NewValidator event emited', async () => {
+      const [validator] = signers;
+
+      await expect(bridge.addValidators([validator]))
+        .to.emit(bridge, 'NewValidator').withArgs(validator.address)
+      await expect(bridge.changeValidatorState(validator, true))
+        .to.emit(bridge, 'RemovedValidator')
+        .withArgs(validator.address);
+
+      expect(await bridge.isValidator(validator)).to.be.false;
+      expect(await bridge.isValidatorDeleted(validator)).to.be.true;
+
+      // Assert
+      await expect(bridge.changeValidatorState(validator, false))
+        .to.emit(bridge, 'NewValidator')
+        .withArgs(validator.address);
+    });
+
+    it('cannot change validator\'s status for never rigistered as a validator account', async () => {
+      const [nonValidator] = signers;
+
+      await expect(bridge.changeValidatorState(nonValidator, true))
+        .rejectedWith('bridge: unable to change state of unknown validator')
+      await expect(bridge.changeValidatorState(nonValidator, false))
+        .rejectedWith('bridge: unable to change state of unknown validator')
+    })
+
     it('cannot add the same account as a validator twice', async () => {
       const [validator] = signers;
   
@@ -109,6 +154,21 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
         .to.emit(bridge, 'NewValidator').withArgs(validator.address);
   
       // cannot add in separate tx
+      await expect(bridge.addValidators([validator]))
+        .revertedWith('bridge: validator already exists');
+    });
+
+    it('cannot add deleted validator again', async () => {
+      const [validator] = signers;
+    
+      await expect(bridge.addValidators([validator]))
+        .to.emit(bridge, 'NewValidator').withArgs(validator.address);
+
+      await expect(bridge.changeValidatorState(validator, true))
+        .to.emit(bridge, 'RemovedValidator')
+        .withArgs(validator.address);
+
+      // Assert
       await expect(bridge.addValidators([validator]))
         .revertedWith('bridge: validator already exists');
     });
@@ -188,6 +248,23 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       await expect(bridge.removePair(SOURCE_ADDRESS, CHAIN_ID))
         .revertedWith('bridge: invalid pair');
     });
+
+    it('can add tokens', async () => {
+      const [token1, token2] = tokens;
+
+      expect(await bridge.isToken(token1)).to.deep.eq([0, false]);
+      expect(await bridge.isToken(token2)).to.deep.eq([0, false]);
+
+      await bridge.addTokens([token1, token2]);
+
+      // Assert
+      throw Error('continue test');
+      expect(await bridge.isToken(token1)).to.be.true;
+      expect(await bridge.isToken(token2)).to.be.true;
+
+      expect(await bridge.tokens(0)).to.eq(token1);
+      expect(await bridge.tokens(1)).to.eq(token2);
+    });
   });
 }
 
@@ -219,6 +296,16 @@ describe('Non-admin', () => {
     expect(await bridge.isValidator(user)).to.be.false;
 
     await expect(bridge.addValidators([user]))
+      .revertedWithoutReason();
+  });
+
+  it('cannot change validator\'s status', async () => {
+    const [validator] = signers;
+    
+    await expect(bridge.connect(admin).addValidators([validator]))
+      .to.emit(bridge, 'NewValidator').withArgs(validator.address);
+
+    await expect(bridge.changeValidatorState(validator, true))
       .revertedWithoutReason();
   });
 
