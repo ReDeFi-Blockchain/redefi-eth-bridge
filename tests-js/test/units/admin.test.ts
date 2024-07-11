@@ -20,15 +20,26 @@ it('Owner set during the deploy transaction', async () => {
   expect(await bridge.owner()).to.eq(owner);
 });
 
-it.skip('[TODO] Owner can set a new admin', async () => {
+it('Owner can set a new admin, NewAdmin event emited', async () => {
+  const [newAdmin] = signers;
 
+  await expect(bridge.connect(owner).setAdmin(newAdmin))
+    .to.emit(bridge, 'NewAdmin')
+    .withArgs(newAdmin);
+
+  expect(await bridge.admin()).to.eq(newAdmin.address);
 });
 
 it('Admin set during the deploy transaction', async () => {
   expect(await bridge.admin()).to.eq(admin);
 });
 
-it.skip('[TODO] Admin cannot set new admin', async () => {});
+it('Admin cannot set new admin', async () => {
+  const [newAdmin] = signers;
+
+  await expect(bridge.connect(admin).setAdmin(newAdmin))
+    .revertedWithoutReason();
+});
 
 
 for (const TEST_CASE of ['Owner', 'Admin'] as const) {
@@ -282,7 +293,7 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
         .revertedWith('bridge: token already exists');
     });
 
-   it.skip('can remove token', async () => {});
+   it.skip('[TODO] can remove token', async () => {});
   });
 }
 
@@ -296,6 +307,13 @@ describe('Non-admin', () => {
 
     await expect(bridge.setSigner(newSigner))
       .to.revertedWithoutReason();
+  });
+
+  it('cannot set new admin', async () => {
+    const [newAdmin] = signers;
+  
+    await expect(bridge.setAdmin(newAdmin))
+      .revertedWithoutReason();
   });
 
   it('cannot switch maintenance mode', async () => {
