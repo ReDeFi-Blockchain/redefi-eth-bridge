@@ -2,9 +2,10 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract TestERC20 is ERC20 {
-  constructor() ERC20("Redefi Token", "RED") {
+contract TestERC20 is ERC20, Ownable {
+  constructor() ERC20("Redefi Token", "RED") Ownable(msg.sender) {
     // set initial balances
     uint256 initialBalance = 100e18;
     _mint(0x70997970C51812dc3A010C7d01b50e0d17dc79C8, initialBalance);

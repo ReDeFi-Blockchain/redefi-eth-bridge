@@ -249,8 +249,10 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
         .revertedWith('bridge: invalid pair');
     });
 
-    it('can add tokens', async () => {
+    it('can add ownable tokens, if token owned by the bridge it will be marked as isOwn', async () => {
       const [token1, token2] = tokens;
+      // token 2 owned by the bridge
+      await token2.connect(owner).transferOwnership(bridge);
 
       expect(await bridge.isToken(token1)).to.deep.eq([0, false]);
       expect(await bridge.isToken(token2)).to.deep.eq([0, false]);
@@ -258,13 +260,29 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       await bridge.addTokens([token1, token2]);
 
       // Assert
-      throw Error('continue test');
-      expect(await bridge.isToken(token1)).to.be.true;
-      expect(await bridge.isToken(token2)).to.be.true;
+      expect(await bridge.isToken(token1)).to.deep.eq([1, false]);
+      expect(await bridge.isToken(token2)).to.deep.eq([2, true]);
 
       expect(await bridge.tokens(0)).to.eq(token1);
       expect(await bridge.tokens(1)).to.eq(token2);
     });
+
+    it.skip('[TODO] can set isOwn flag for token', async() => {})
+
+    it('cannot add the same token twice', async () => {
+      const [token] = tokens;
+      // cannot add in one tx
+      await expect(bridge.addTokens([token, token]))
+        .revertedWith('bridge: token already exists');
+
+      await bridge.addTokens([token]);
+
+      // cannot add in deifferent tx
+      await expect(bridge.addTokens([token]))
+        .revertedWith('bridge: token already exists');
+    });
+
+   it.skip('can remove token', async () => {});
   });
 }
 
@@ -342,6 +360,13 @@ describe('Non-admin', () => {
     expect(await bridge.pairs(expectedPairId)).to.deep.eq(expectedPair);
 
     await expect(bridge.removePair(SOURCE_ADDRESS, CHAIN_ID))
+      .revertedWithoutReason();
+  });
+
+  it('cannot add token', async () => {
+    const [token] = tokens;
+
+    await expect(bridge.addTokens([token]))
       .revertedWithoutReason();
   });
 });
