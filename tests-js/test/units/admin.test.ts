@@ -278,6 +278,8 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       expect(await bridge.tokens(1)).to.eq(token2);
     });
 
+    it.skip('[TODO] can add zero address to regitered tokens', async () => {});
+
     it.skip('[TODO] can set isOwn flag for token', async() => {})
 
     it('cannot add the same token twice', async () => {

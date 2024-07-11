@@ -8,13 +8,14 @@ export const getRessetableConfig = async () => {
   const ERC20Factory = await ethers.getContractFactory('TestERC20');
   const token1 = await ERC20Factory.deploy();
   const token2 = await ERC20Factory.deploy();
+  const token3 = await ERC20Factory.deploy();
 
   return {
     owner,
     admin,
     user,
     signers,
-    tokens: [token1, token2],
+    tokens: [token1, token2, token3],
     bridge,
   }
 }
