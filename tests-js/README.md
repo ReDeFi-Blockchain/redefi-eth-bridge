@@ -9,8 +9,8 @@ yarn
 yarn compile
 ```
 
-2. Spinup test nodes
+2. Run unit tests
 
 ```sh
-
+yarn test
 ```
