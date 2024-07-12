@@ -8,6 +8,7 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
 let user: HardhatEthersSigner;
+let signers: HardhatEthersSigner[];
 let tokens: TestERC20[];
 let ownedToken: TestERC20;
 let nonOwnedToken: TestERC20;
@@ -19,7 +20,7 @@ const ADD_NATIVE_FUND_VALUE = 5000n * (10n ** 18n);
 
 describe('User', () => {
   beforeEach(async () => {
-    ({bridge, owner, user, tokens} = await loadFixture(getRessetableConfig));
+    ({bridge, owner, user, tokens, signers} = await loadFixture(getRessetableConfig));
     [ownedToken, nonOwnedToken, nonRegisteredToken] = tokens;
   
     // token1 is owned by the bridge
@@ -42,23 +43,34 @@ describe('User', () => {
       .emit(nonOwnedToken, 'Approval')
       .withArgs(user, bridge, ADD_FUND_VALUE);
 
-      // TODO add events?
-    await expect(bridge.addFunds(nonOwnedToken, ADD_FUND_VALUE))
+    const addFundsTx = bridge.addFunds(nonOwnedToken, ADD_FUND_VALUE);
+    await expect(addFundsTx)
+      .emit(bridge, 'Funded')
+      .withArgs(user, nonOwnedToken, ADD_FUND_VALUE, false);
+
+    await expect(addFundsTx)
       .changeTokenBalances(
         nonOwnedToken,
         [bridge, user],
         [ADD_FUND_VALUE, -ADD_FUND_VALUE]
       );
-    // TODO check isToken storage balance
   });
 
   it('can add native-token funds to registered token, msg.value should be equal to amount', async () => {
-    await expect(bridge.addFunds(nativeTokenAddress, ADD_NATIVE_FUND_VALUE, {value: ADD_NATIVE_FUND_VALUE}))
+    const addFundsTx = bridge.addFunds(nativeTokenAddress, ADD_NATIVE_FUND_VALUE, {value: ADD_NATIVE_FUND_VALUE});
+    await expect(addFundsTx)
+      .emit(bridge, 'Funded')
+      .withArgs(user, nativeTokenAddress, ADD_NATIVE_FUND_VALUE, false);
+
+    await expect(addFundsTx)
       .changeEtherBalances(
         [bridge, user],
         [ADD_NATIVE_FUND_VALUE, -ADD_NATIVE_FUND_VALUE]
       );
-    // TODO check isToken storage balance
+  });
+
+  it('addFunds emits Funded event', async () => {
+
   });
 
   it('cannot add funds to non-registered token', async () => {
@@ -123,14 +135,18 @@ describe('User', () => {
     await nonOwnedToken.approve(bridge, ADD_FUND_VALUE);
     await bridge.addFunds(nonOwnedToken, ADD_FUND_VALUE);
 
-    await expect(bridge.withdrawFunds(nonOwnedToken, ADD_FUND_VALUE))
+    const withdrawFundsTx = bridge.withdrawFunds(nonOwnedToken, ADD_FUND_VALUE);
+
+    await expect(withdrawFundsTx)
+      .to.emit(bridge, 'Funded')
+      .withArgs(user, nonOwnedToken, ADD_FUND_VALUE, true);
+
+    await expect(withdrawFundsTx)
       .changeTokenBalances(
         nonOwnedToken, 
         [bridge, user],
         [-ADD_FUND_VALUE, ADD_FUND_VALUE]
       );
-    
-    // TODO check storage
   });
 
   it('can partially withdraw ERC-20 funds if balance enough', async () => {
@@ -142,12 +158,17 @@ describe('User', () => {
     await nonOwnedToken.approve(bridge, ADD_FUND_VALUE);
     await bridge.addFunds(nonOwnedToken, ADD_FUND_VALUE);
 
-    await expect(bridge.withdrawFunds(nonOwnedToken, FIRST_WITHDRAW))
+    const withdrawFundsTx = bridge.withdrawFunds(nonOwnedToken, FIRST_WITHDRAW);
+    await expect(withdrawFundsTx)
       .changeTokenBalances(
         nonOwnedToken, 
         [bridge, user],
         [-FIRST_WITHDRAW, FIRST_WITHDRAW]
       );
+
+    await expect(withdrawFundsTx)
+      .to.emit(bridge, 'Funded')
+      .withArgs(user, nonOwnedToken, FIRST_WITHDRAW, true);
 
     await expect(bridge.withdrawFunds(nonOwnedToken, SECOND_WITHDRAW))
       .changeTokenBalances(
@@ -163,7 +184,13 @@ describe('User', () => {
   it('can withdraw native funds if balance enough', async () => {
     await bridge.addFunds(nativeTokenAddress, ADD_NATIVE_FUND_VALUE, {value: ADD_NATIVE_FUND_VALUE});
 
-    await expect(bridge.withdrawFunds(nativeTokenAddress, ADD_NATIVE_FUND_VALUE))
+    const withdrawFundsTx = bridge.withdrawFunds(nativeTokenAddress, ADD_NATIVE_FUND_VALUE);
+
+    await expect(withdrawFundsTx)
+      .to.emit(bridge, 'Funded')
+      .withArgs(user, nativeTokenAddress, ADD_NATIVE_FUND_VALUE, true);
+      
+    await expect(withdrawFundsTx)
       .changeEtherBalances(
         [bridge, user],
         [-ADD_NATIVE_FUND_VALUE, ADD_NATIVE_FUND_VALUE]
@@ -172,7 +199,6 @@ describe('User', () => {
     // cannot withdraw more tokens
     await expect(bridge.withdrawFunds(nativeTokenAddress, 1))
       .revertedWith('bridge: invalid amount')
-    // TODO storage
   });
 
   it.skip('[TODO: if token removal will be added] can withdraw removed token', async () => {});
@@ -203,6 +229,10 @@ describe('User', () => {
       .revertedWith('bridge: invalid amount');
   });
 
+  it.skip('[TODO] cannot withdraw if bridge\'s balance of ERC-20 less than amount', async () => {
+
+  });
+
   it('cannot perform reentrancy attack', async () => {
     const HACKER_INITIAL_VALUE = 300;
     const HACKER_DEPOSIT = 100;
@@ -210,10 +240,11 @@ describe('User', () => {
     const ReentrancyFactory = await ethers.getContractFactory('Reentrancy');
     const hacker = await ReentrancyFactory.connect(user).deploy(bridge, {value: HACKER_INITIAL_VALUE});
 
-    await bridge.connect(owner).addTokens([nativeTokenAddress]);
     await bridge.connect(owner).addFunds(nativeTokenAddress, 777, {value: 777});
 
     await hacker.addFunds(HACKER_DEPOSIT);
+
+    // hacker cannot withdraw more than balance
     await expect(hacker.attack({gasLimit: 10_000_000}))
       .changeEtherBalance(hacker, HACKER_DEPOSIT)
   });
