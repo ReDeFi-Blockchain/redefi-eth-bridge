@@ -257,13 +257,15 @@ contract Bridge {
 		require(registeredTokens[_token].tokenId > 0, "bridge: token should be registered first");
 		require(!registeredTokens[_token].isOwn, "bridge: no need any funds for owned tokens");
 		require(registeredTokens[_token].funds[msg.sender] >= _amount, "bridge: invalid amount");
+
+		registeredTokens[_token].funds[msg.sender] -= _amount;
+
 		if(_token == address(0)) {
 			TransferHelper.safeTransferETH(msg.sender, _amount);
 		}
 		else {
 			TransferHelper.safeTransfer(_token, msg.sender, _amount);
 		}
-		registeredTokens[_token].funds[msg.sender] -= _amount;
 		emit Funded(msg.sender, _token, _amount, true);
 	}
 
