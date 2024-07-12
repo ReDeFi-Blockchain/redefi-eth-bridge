@@ -42,7 +42,7 @@ class BridgeTestCase(EthTestCase):
 
         # Add tokens to bridge trusted list
         bridge.execute_tx(
-            'addTokens', ([bax_address],),
+            'registerTokens', ([bax_address],),
             {'from': deployer.address}
         )
 

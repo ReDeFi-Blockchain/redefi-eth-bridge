@@ -265,14 +265,14 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       // token 2 owned by the bridge
       await token2.connect(owner).transferOwnership(bridge);
 
-      expect(await bridge.isToken(token1)).to.deep.eq([0, false]);
-      expect(await bridge.isToken(token2)).to.deep.eq([0, false]);
+      expect(await bridge.registeredTokens(token1)).to.deep.eq([0, false]);
+      expect(await bridge.registeredTokens(token2)).to.deep.eq([0, false]);
 
-      await bridge.addTokens([token1, token2]);
+      await bridge.registerTokens([token1, token2]);
 
       // Assert
-      expect(await bridge.isToken(token1)).to.deep.eq([1, false]);
-      expect(await bridge.isToken(token2)).to.deep.eq([2, true]);
+      expect(await bridge.registeredTokens(token1)).to.deep.eq([1, false]);
+      expect(await bridge.registeredTokens(token2)).to.deep.eq([2, true]);
 
       expect(await bridge.tokens(0)).to.eq(token1);
       expect(await bridge.tokens(1)).to.eq(token2);
@@ -285,13 +285,13 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
     it('cannot add the same token twice', async () => {
       const [token] = tokens;
       // cannot add in one tx
-      await expect(bridge.addTokens([token, token]))
+      await expect(bridge.registerTokens([token, token]))
         .revertedWith('bridge: token already exists');
 
-      await bridge.addTokens([token]);
+      await bridge.registerTokens([token]);
 
       // cannot add in deifferent tx
-      await expect(bridge.addTokens([token]))
+      await expect(bridge.registerTokens([token]))
         .revertedWith('bridge: token already exists');
     });
 
@@ -386,7 +386,7 @@ describe('Non-admin', () => {
   it('cannot add token', async () => {
     const [token] = tokens;
 
-    await expect(bridge.addTokens([token]))
+    await expect(bridge.registerTokens([token]))
       .revertedWithoutReason();
   });
 });

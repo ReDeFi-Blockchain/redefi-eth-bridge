@@ -31,6 +31,7 @@ contract Bridge {
 	event Transfer(bytes32 indexed txHash, uint amount);
 	event Listed(bytes32 indexed txHash, uint sourceChainId);
 	event Confirmed(bytes32 indexed txHash, uint16 validatorId);
+	event Funded(address indexed funder, address indexed token, uint256 amount, bool isWithdraw);
 
 	event NewAdmin(address indexed admin);
 	event NewSigner(address indexed signer);
@@ -75,7 +76,7 @@ contract Bridge {
 		mapping(address => uint256) funds;
 	}
 
-	mapping(address => TokenData) public isToken;
+	mapping(address => TokenData) public registeredTokens;
 	address[] public tokens;
 
 	constructor(address _admin) {
@@ -212,53 +213,69 @@ contract Bridge {
 		}
 	}
 
-	function addTokens(address[] memory _tokens) external onlyAdmin {
+	function _changeTokenStatus(address _token) internal {
+		if(_token == address(0)) {
+			registeredTokens[_token].isOwn = false;
+		}
+		else {
+			registeredTokens[_token].isOwn = IERC20(_token).owner() == address(this);
+		}
+	}
+
+	function changeTokenStatus(address _token) external onlyAdmin {
+		require(registeredTokens[_token].tokenId < 1, "bridge: token already exists");
+		_changeTokenStatus(_token);
+	}
+
+	function registerTokens(address[] memory _tokens) external onlyAdmin {
 		for (uint i = 0; i < _tokens.length; i++) {
 			require(tokens.length <= type(uint16).max, "bridge: tokens count exceeds uint16 range");
-			require(isToken[_tokens[i]].tokenId < 1, "bridge: token already exists");
-			bool _isOwn = IERC20(_tokens[i]).owner() == address(this);
+			require(registeredTokens[_tokens[i]].tokenId < 1, "bridge: token already exists");
+
 			tokens.push(_tokens[i]);
-			isToken[_tokens[i]].isOwn = _isOwn;
-			isToken[_tokens[i]].tokenId = uint16(tokens.length);
+			registeredTokens[_tokens[i]].tokenId = uint16(tokens.length);
+			_changeTokenStatus(_tokens[i]);
 		}
 	}
 
 	function addFunds(address _token, uint256 _amount) external payable onlyWithActiveBridge {
 		require(_amount > 0, "bridge: amount must be greater than zero");
-		require(isToken[_token].tokenId > 0, "bridge: token should be registered first");
-		require(!isToken[_token].isOwn, "bridge: no need any funds for owned tokens");
+		require(registeredTokens[_token].tokenId > 0, "bridge: token should be registered first");
+		require(!registeredTokens[_token].isOwn, "bridge: no need any funds for owned tokens");
 		if(_token == address(0)) {
 			require(msg.value == _amount, "bridge: invalid amount");
 		}
 		else {
 			TransferHelper.safeTransferFrom(_token, msg.sender, address(this), _amount);
 		}
-		isToken[_token].funds[msg.sender] += _amount;
+		registeredTokens[_token].funds[msg.sender] += _amount;
+		emit Funded(msg.sender, _token, _amount, false);
 	}
 
 	function withdrawFunds(address _token, uint256 _amount) external payable {
 		require(_amount > 0, "bridge: amount must be greater than zero");
-		require(isToken[_token].tokenId > 0, "bridge: token should be registered first");
-		require(!isToken[_token].isOwn, "bridge: no need any funds for owned tokens");
-		require(isToken[_token].funds[msg.sender] >= _amount, "bridge: invalid amount");
+		require(registeredTokens[_token].tokenId > 0, "bridge: token should be registered first");
+		require(!registeredTokens[_token].isOwn, "bridge: no need any funds for owned tokens");
+		require(registeredTokens[_token].funds[msg.sender] >= _amount, "bridge: invalid amount");
 		if(_token == address(0)) {
 			TransferHelper.safeTransferETH(msg.sender, _amount);
 		}
 		else {
 			TransferHelper.safeTransfer(_token, msg.sender, _amount);
 		}
-		isToken[_token].funds[msg.sender] -= _amount;
+		registeredTokens[_token].funds[msg.sender] -= _amount;
+		emit Funded(msg.sender, _token, _amount, true);
 	}
 
 	function deposit(address _receiver, address _token, uint _amount, uint _targetChainId) external payable onlyWithActiveBridge {
 		require(_amount > 0, "bridge: amount must be greater than zero");
 		require(msg.sender.code.length == 0, "bridge: only personal");
 		require(msg.sender != address(0) && _receiver != address(0), "bridge: zero receiver");
-		require(isToken[_token].tokenId > 0, "bridge: unable to deposit unregistered token");
+		require(registeredTokens[_token].tokenId > 0, "bridge: unable to deposit unregistered token");
 		if (_token == address(0)) {
 			require(msg.value == _amount, "bridge: invalid amount");
 		} else {
-			if (isToken[_token].isOwn) {
+			if (registeredTokens[_token].isOwn) {
 				IERC20(_token).burnFrom(msg.sender, _amount);
 			} else {
 				TransferHelper.safeTransferFrom(_token, msg.sender, address(this), _amount);
@@ -270,7 +287,7 @@ contract Bridge {
 	function list(uint[][] memory _args) external onlySigner {
 		for(uint i = 0; i < _args.length; i++) {
 			address _token = address(uint160(_args[i][0]));
-			uint16 _tokenId = isToken[_token].tokenId;
+			uint16 _tokenId = registeredTokens[_token].tokenId;
 			require(_tokenId > 0, "bridge: trying to list unregistered token");
 			address _to = address(uint160(_args[i][1]));
 			uint _amount = _args[i][2];
@@ -296,7 +313,7 @@ contract Bridge {
 				if (_token==address(0)) {
 					TransferHelper.safeTransferETH(_to, _amount);
 				} else {
-					if (isToken[_token].isOwn) {
+					if (registeredTokens[_token].isOwn) {
 						IERC20(_token).mint(_to, _amount);
 					} else {
 						TransferHelper.safeTransfer(_token, _to, _amount);
