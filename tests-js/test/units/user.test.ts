@@ -26,9 +26,8 @@ describe('User', () => {
     await ownedToken.connect(owner).transferOwnership(bridge);
   
     // register native and erc-20 token
-    await bridge.connect(owner).addTokens([
-      ownedToken, nonOwnedToken,
-      // TODO nativeTokenAddress
+    await bridge.connect(owner).registerTokens([
+      ownedToken, nonOwnedToken, nativeTokenAddress
     ]);
   
     // all the transactions performed by the user
