@@ -6,6 +6,7 @@
   "license": "MIT",
   "scripts": {
     "test": "npx hardhat test",
+    "test:coverage": "npx hardhat coverage --sources ./BridgeLinked.sol",
     "compile": "make copy-bridge && make compile"
   },
   "dependencies": {
