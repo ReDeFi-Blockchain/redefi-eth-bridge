@@ -204,10 +204,10 @@ contract Bridge {
 		for(uint i = 0; i < _txHashes.length; i++) {
 			require(confirmations[_txHashes[i]].amount > 0, "bridge: unknown txHash");
 			require(!confirmations[_txHashes[i]].isSent, "bridge: txHash already sent");
-			require(!isConfirmedBy(_txHashes[i], msg.sender), "bridge: txHash already confirmed");
 		}
 
 		for(uint i = 0; i < _txHashes.length; i++) {
+			require(!isConfirmedBy(_txHashes[i], msg.sender), "bridge: txHash already confirmed");
 			confirmations[_txHashes[i]].confirmedBy.push(validatorIds[msg.sender]);
 			emit Confirmed(_txHashes[i], validatorIds[msg.sender]);
 		}
@@ -223,8 +223,13 @@ contract Bridge {
 	}
 
 	function changeTokenStatus(address _token) external onlyAdmin {
-		require(registeredTokens[_token].tokenId < 1, "bridge: token already exists");
+		require(registeredTokens[_token].tokenId > 0, "bridge: token must by registered first");
 		_changeTokenStatus(_token);
+	}
+
+	function forceChangeTokenStatus(address _token, bool _status) external onlyAdmin {
+		require(registeredTokens[_token].tokenId > 0, "bridge: token must by registered first");
+		registeredTokens[_token].isOwn = _status;
 	}
 
 	function registerTokens(address[] memory _tokens) external onlyAdmin {

@@ -8,7 +8,6 @@ import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
 let user: HardhatEthersSigner;
-let signers: HardhatEthersSigner[];
 let tokens: TestERC20[];
 let ownedToken: TestERC20;
 let nonOwnedToken: TestERC20;
@@ -20,7 +19,7 @@ const ADD_NATIVE_FUND_VALUE = 5000n * (10n ** 18n);
 
 describe('User', () => {
   beforeEach(async () => {
-    ({bridge, owner, user, tokens, signers} = await loadFixture(getRessetableConfig));
+    ({bridge, owner, user, tokens} = await loadFixture(getRessetableConfig));
     [ownedToken, nonOwnedToken, nonRegisteredToken] = tokens;
   
     // token1 is owned by the bridge
