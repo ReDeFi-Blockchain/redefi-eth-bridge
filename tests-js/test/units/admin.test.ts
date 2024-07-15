@@ -278,9 +278,28 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       expect(await bridge.tokens(1)).to.eq(token2);
     });
 
-    it.skip('[TODO] can add zero address to regitered tokens', async () => {});
+    it('can add zero address to regitered tokens', async () => {
+      expect(await bridge.registeredTokens(ethers.ZeroAddress)).to.deep.eq([0, false]);
+      
+      await bridge.registerTokens([ethers.ZeroAddress]);
 
-    it.skip('[TODO] can set isOwn flag for token', async() => {})
+      expect(await bridge.registeredTokens(ethers.ZeroAddress)).to.deep.eq([1, false]);
+      expect(await bridge.tokens(0)).to.eq(ethers.ZeroAddress);
+    });
+
+    it('can force set isOwn flag for registered token', async() => {
+      const [token] = tokens;
+      await bridge.registerTokens([token]);
+      expect(await bridge.registeredTokens(token)).to.deep.eq([1, false]);
+
+      // Can change false -> true
+      await bridge.forceChangeTokenStatus(token, true);
+      expect(await bridge.registeredTokens(token)).to.deep.eq([1, true]);
+
+      // Can change true -> false
+      await bridge.forceChangeTokenStatus(token, false);
+      expect(await bridge.registeredTokens(token)).to.deep.eq([1, false]);
+    });
 
     it('cannot add the same token twice', async () => {
       const [token] = tokens;
@@ -387,6 +406,16 @@ describe('Non-admin', () => {
     const [token] = tokens;
 
     await expect(bridge.registerTokens([token]))
+      .revertedWithoutReason();
+  });
+
+
+  it('cannot force set isOwn flag for token', async() => {
+    const [token] = tokens;
+
+    await bridge.connect(admin).registerTokens([token]);
+
+    await expect(bridge.forceChangeTokenStatus(token, true))
       .revertedWithoutReason();
   });
 });
