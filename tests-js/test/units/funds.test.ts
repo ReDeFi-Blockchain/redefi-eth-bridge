@@ -1,9 +1,10 @@
-import { expect, use } from 'chai';
+import { expect } from 'chai';
 import { getRessetableConfig } from '../../fixtures/resettable';
 import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { Bridge, TestERC20 } from '../../typechain-types';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { getRessetableWithDataConfig } from '../../fixtures/resettableWithData';
 
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
@@ -228,8 +229,39 @@ describe('User', () => {
       .revertedWith('bridge: invalid amount');
   });
 
-  it.skip('[TODO] cannot withdraw if bridge\'s balance of ERC-20 less than amount', async () => {
+  it('cannot withdraw if bridge\'s balance of ERC-20 less than amount', async () => {
+    const {users, tokens, validator, owner, signer} = await loadFixture(getRessetableWithDataConfig);
+    const bridgeBalanceBefore = await tokens.nonOwned.balanceOf(bridge);
+    await bridge.connect(owner).setRequiredConfirmations(1);
 
+    const [funder, recepient] = users;
+
+    // funder added 500
+    await tokens.nonOwned.connect(funder).approve(bridge, 500n);
+    await bridge.connect(funder).addFunds(tokens.nonOwned, 500n);
+
+    // 100 tokens has been transfered
+    const txHash = '0x9daa6e69e52c3f6ef8f4da8a88ec9ea031ee036c64f91ead13ca61fc054e1038';
+    const transfer = [
+      BigInt(await tokens.nonOwned.getAddress()),
+      BigInt(recepient.address),
+      bridgeBalanceBefore + 100n,
+      9999,
+      BigInt('0x9daa6e69e52c3f6ef8f4da8a88ec9ea031ee036c64f91ead13ca61fc054e1038'),
+    ]
+
+    // listed, validated and transfered
+    await bridge.connect(signer).list([transfer]);
+    await bridge.connect(validator).confirm([txHash]);
+    await bridge.connect(signer).transfer([txHash]);
+
+    // bridge balance = 400
+    const bridgeBalanceAfter = await tokens.nonOwned.balanceOf(bridge);
+    expect(bridgeBalanceAfter).to.eq(400);
+
+    // funder cannot withdraw 500
+    await expect(bridge.connect(funder).withdrawFunds(tokens.nonOwned, 500))
+      .revertedWith('TransferHelper: TRANSFER_FAILED');
   });
 
   it('cannot perform reentrancy attack', async () => {

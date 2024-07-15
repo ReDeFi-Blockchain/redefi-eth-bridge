@@ -6,6 +6,7 @@ import { expect } from 'chai';
 
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
+let admin: HardhatEthersSigner;
 let validator: HardhatEthersSigner;
 let signer: HardhatEthersSigner;
 let listInfo1: ListInfo;
@@ -15,7 +16,7 @@ let listInfo2: ListInfo;
 describe('Validator', async () => {
   beforeEach(async () => {
     const config = await loadFixture(getRessetableWithDataConfig);
-    ({validator, signer, owner} = config);
+    ({validator, signer, owner, admin} = config);
     [listInfo1, listInfo2] = config.data;
   
     bridge = config.bridge.connect(validator);
@@ -43,8 +44,19 @@ describe('Validator', async () => {
       .revertedWith('bridge: unknown txHash');
   });
 
-  it.skip('[TODO] cannot confirm already sent transfer', async () => {
+  it('cannot confirm already sent transfer', async () => {
+    const validator2 = admin;
+    await bridge.connect(owner).setRequiredConfirmations(1);
+    await bridge.connect(owner).addValidators([validator2]);
 
+    await bridge.connect(signer).list([listInfo1.data]);
+    await bridge.connect(validator).confirm([listInfo1.hash]);
+    await bridge.connect(signer).transfer([listInfo1.hash]);
+
+    expect((await bridge.confirmations(listInfo1.hash)).isSent).to.be.true;
+
+    await expect(bridge.connect(validator2).confirm([listInfo1.hash]))
+      .revertedWith('bridge: txHash already sent');
   });
 
   it('cannot confirmed transfer twice', async () => {
