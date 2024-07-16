@@ -69,8 +69,9 @@ describe('User', () => {
       );
   });
 
-  it('addFunds emits Funded event', async () => {
-
+  it('cannot deposit native tokens to bridge directly', async () => {
+    await expect(user.sendTransaction({to: bridge, value: ADD_NATIVE_FUND_VALUE}))
+      .revertedWithoutReason();
   });
 
   it('cannot add funds to non-registered token', async () => {

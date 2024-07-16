@@ -140,8 +140,15 @@ describe('Deposit', () => {
       .revertedWith('bridge: amount must be greater than zero');
   });
 
-  it.skip('[TODO] smart contracts (wallets) can deposit tokens', async () => {
+  it('smart contracts (wallets) can deposit tokens', async () => {
+    const walletNativeBalance = 30n * (10n ** 18n);
+    const deposit = 10n * (10n ** 18n);
 
+    const WalletFactory = await ethers.getContractFactory('TestWallet');
+    const wallet = await WalletFactory.connect(user).deploy(bridge, {value: walletNativeBalance});
+
+    await expect(wallet.connect(user).depositToBridge(user, nativeTokenAddress, deposit, 1899))
+      .to.emit(bridge, 'Deposit');
   });
 
   it('receiver cannot be zero address', async () => {

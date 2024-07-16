@@ -32,7 +32,7 @@ export const getRessetableWithDataConfig = async () => {
   // topup bridge balance
   await token1.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
   await token2.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
-  await owner.sendTransaction({to: bridge, value: bridgeBalance})
+  await bridge.addFunds(ethers.ZeroAddress, bridgeBalance, {value: bridgeBalance});
 
   const [user2, signer, validator] = signers;
   // NOTICE: if change signer account also change admin in TestERC20.sol
