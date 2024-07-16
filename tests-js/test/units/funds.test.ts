@@ -268,7 +268,7 @@ describe('User', () => {
     const HACKER_INITIAL_VALUE = 300;
     const HACKER_DEPOSIT = 100;
 
-    const ReentrancyFactory = await ethers.getContractFactory('Reentrancy');
+    const ReentrancyFactory = await ethers.getContractFactory('ReentrancyWithdraw');
     const hacker = await ReentrancyFactory.connect(user).deploy(bridge, {value: HACKER_INITIAL_VALUE});
 
     await bridge.connect(owner).addFunds(nativeTokenAddress, 777, {value: 777});
@@ -276,7 +276,7 @@ describe('User', () => {
     await hacker.addFunds(HACKER_DEPOSIT);
 
     // hacker cannot withdraw more than balance
-    await expect(hacker.attack({gasLimit: 10_000_000}))
+    await expect(hacker.attackWithdraw({gasLimit: 10_000_000}))
       .changeEtherBalance(hacker, HACKER_DEPOSIT)
   });
 });

@@ -317,6 +317,7 @@ contract Bridge {
 				address _token = tokens[_tokenId - 1];
 				address _to = confirmations[_txHash].receiver;
 				uint256 _amount = confirmations[_txHash].amount;
+				confirmations[_txHash].isSent = true;
 				if (_token==address(0)) {
 					TransferHelper.safeTransferETH(_to, _amount);
 				} else {
@@ -326,7 +327,6 @@ contract Bridge {
 						TransferHelper.safeTransfer(_token, _to, _amount);
 					}
 				}
-				confirmations[_txHash].isSent = true;
 				emit Transfer(_txHash, _amount);
 			}
 		}

@@ -219,8 +219,43 @@ describe('Signer transfer', async () => {
       .revertedWithoutReason();
   });
 
-  it.skip('[TODO] cannot perform reentrancy attack', async () => {
+  it('cannot perform reentrancy attack', async () => {
+    const txHash = '0x9daa6e69e52c3f6ef8f4da8a88ec9ea031ee036c64f91ead13ca61fc054e1038';
 
+    const balanceBridge = await ethers.provider.getBalance(bridge);
+    // Suppose the attacker deposited half of the bridge's balance
+    // We will check it is impossible to transfer the full amount
+    const DEPOSIT = balanceBridge / 2n;
+
+    // set reentrancy contract
+    const ReentrancyFactory = await ethers.getContractFactory('ReentrancyTransfer');
+    const reentrancy = await ReentrancyFactory.deploy(bridge);
+    await reentrancy.setHashToTransfer(txHash);
+
+    // the deposit listed by the signer
+    await bridge.connect(signer).list([
+      [
+        BigInt(nativeTokenAddress),
+        BigInt(await reentrancy.getAddress()),
+        DEPOSIT,
+        1888,
+        BigInt(txHash)
+      ]
+    ]);
+
+    // transfer was real, validators confirmed
+    await bridge.connect(validator1).confirm([txHash]);
+    await bridge.connect(validator2).confirm([txHash]);
+
+    // even if the attacker got the signer role...
+    await bridge.connect(owner).setSigner(reentrancy);
+
+    // ...it cannot transfer more than deposit
+    await reentrancy.attackTransfer();
+
+    // bridge's balance correct
+    const balanceBridgeAfterAttack = await ethers.provider.getBalance(bridge);
+    expect(balanceBridgeAfterAttack).to.eq(balanceBridge - DEPOSIT);
   });
 });
 

@@ -9,7 +9,7 @@ interface IBridge {
   function withdrawFunds(address _token, uint256 _amount) external payable;
 }
 
-contract Reentrancy {
+contract ReentrancyWithdraw {
   IBridge public bridge;
   uint256 deposit;
 
@@ -18,7 +18,7 @@ contract Reentrancy {
   }
 
   receive() external payable {
-    this.attack();
+    this.attackWithdraw();
   }
 
   function addFunds(uint256 _amount) external {
@@ -26,7 +26,7 @@ contract Reentrancy {
     bridge.addFunds{value: _amount}(address(0), _amount);
   }
 
-  function attack() external payable {
+  function attackWithdraw() external payable {
     uint256 bridgeBalance = address(bridge).balance;
     uint256 withdraw = bridgeBalance > deposit 
       ? deposit
