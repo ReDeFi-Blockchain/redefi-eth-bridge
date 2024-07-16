@@ -108,8 +108,6 @@ contract Bridge {
 		_;
 	}
 
-	receive() external payable {}
-
 	function setAdmin(address _admin) external onlyOwner {
 		admin = _admin;
 		emit NewAdmin(_admin);
@@ -257,7 +255,7 @@ contract Bridge {
 		emit Funded(msg.sender, _token, _amount, false);
 	}
 
-	function withdrawFunds(address _token, uint256 _amount) external payable {
+	function withdrawFunds(address _token, uint256 _amount) external {
 		require(_amount > 0, "bridge: amount must be greater than zero");
 		require(registeredTokens[_token].tokenId > 0, "bridge: token should be registered first");
 		require(!registeredTokens[_token].isOwn, "bridge: no need any funds for owned tokens");
@@ -276,7 +274,6 @@ contract Bridge {
 
 	function deposit(address _receiver, address _token, uint _amount, uint _targetChainId) external payable onlyWithActiveBridge {
 		require(_amount > 0, "bridge: amount must be greater than zero");
-		require(msg.sender.code.length == 0, "bridge: only personal");
 		require(msg.sender != address(0) && _receiver != address(0), "bridge: zero receiver");
 		require(registeredTokens[_token].tokenId > 0, "bridge: unable to deposit unregistered token");
 		if (_token == address(0)) {
@@ -309,7 +306,7 @@ contract Bridge {
 		}
 	}
 
-	function transfer(bytes32[] memory _txHashes) external payable onlySigner {
+	function transfer(bytes32[] memory _txHashes) external onlySigner {
 		for(uint i = 0; i < _txHashes.length; i++) {
 			bytes32 _txHash = _txHashes[i];
 			if (!confirmations[_txHash].isSent && confirmations[_txHash].confirmedBy.length >= requiredConfirmations) {

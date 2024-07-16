@@ -2,11 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "hardhat/console.sol";
-
-interface IBridge {
-  function transfer(bytes32[] memory _txHashes) external payable;
-}
+import "./TestBridge.sol";
 
 contract ReentrancyTransfer {
   IBridge public bridge;
@@ -26,8 +22,6 @@ contract ReentrancyTransfer {
 
   function attackTransfer() external payable {
     try bridge.transfer(hashes) {}
-    catch {
-      console.log('catched');
-    }
+    catch {}
   }
 }

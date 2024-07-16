@@ -2,12 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/interfaces/IERC20.sol";
-import "hardhat/console.sol";
-
-interface IBridge {
-  function addFunds(address _token, uint256 _amount) external payable;
-  function withdrawFunds(address _token, uint256 _amount) external payable;
-}
+import "./TestBridge.sol";
 
 contract ReentrancyWithdraw {
   IBridge public bridge;
