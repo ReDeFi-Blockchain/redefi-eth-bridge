@@ -276,6 +276,7 @@ contract Bridge {
 		require(_amount > 0, "bridge: amount must be greater than zero");
 		require(msg.sender != address(0) && _receiver != address(0), "bridge: zero receiver");
 		require(registeredTokens[_token].tokenId > 0, "bridge: unable to deposit unregistered token");
+		require(links[_targetChainId] != address(0), "bridge: no link to target chainId");
 		if (_token == address(0)) {
 			require(msg.value == _amount, "bridge: invalid amount");
 		} else {
@@ -290,12 +291,13 @@ contract Bridge {
 
 	function list(uint[][] memory _args) external onlySigner {
 		for(uint i = 0; i < _args.length; i++) {
+			uint _sourceChainId = _args[i][3];
+			require(links[_sourceChainId] != address(0), "bridge: no link to source chainId");
 			address _token = address(uint160(_args[i][0]));
 			uint16 _tokenId = registeredTokens[_token].tokenId;
 			require(_tokenId > 0, "bridge: trying to list unregistered token");
 			address _to = address(uint160(_args[i][1]));
 			uint _amount = _args[i][2];
-			uint _sourceChainId = _args[i][3];
 			bytes32 _txHash = bytes32(_args[i][4]);
 			require(_amount > 0, "bridge: amount must be more than zero");
 			require(confirmations[_txHash].amount == 0, "bridge: txHash already listed");
