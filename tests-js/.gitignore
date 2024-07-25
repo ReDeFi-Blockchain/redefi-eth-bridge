@@ -17,6 +17,8 @@ package-lock.json
 # Hardhat Ignition default folder for deployments against a local node
 ignition/deployments/chain-31337
 
-# copy of the Bridge
+# Contracts copies
 /contracts/BridgeLinked.sol
+/contracts/REDToken.sol
+/contracts/BAXToken.sol
 /test-results
