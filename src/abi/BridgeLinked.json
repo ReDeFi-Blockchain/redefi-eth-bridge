@@ -285,9 +285,14 @@
         "internalType": "address",
         "name": "_token",
         "type": "address"
+      },
+      {
+        "internalType": "bool",
+        "name": "_status",
+        "type": "bool"
       }
     ],
-    "name": "changeTokenStatus",
+    "name": "changeTokenOwnership",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -402,24 +407,6 @@
     "name": "deposit",
     "outputs": [],
     "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_status",
-        "type": "bool"
-      }
-    ],
-    "name": "forceChangeTokenStatus",
-    "outputs": [],
-    "stateMutability": "nonpayable",
     "type": "function"
   },
   {

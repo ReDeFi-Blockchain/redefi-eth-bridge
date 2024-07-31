@@ -2,9 +2,6 @@
 pragma solidity ^0.8.0;
 
 interface IERC20 {
-	function owner() external view returns (address);
-	function balanceOf(address account) external view returns (uint256);
-
 	function mint(address account, uint256 amount) external;
 	function burnFrom(address account, uint256 amount) external;
 }
@@ -211,21 +208,7 @@ contract Bridge {
 		}
 	}
 
-	function _changeTokenStatus(address _token) internal {
-		if(_token == address(0)) {
-			registeredTokens[_token].isOwn = false;
-		}
-		else {
-			registeredTokens[_token].isOwn = IERC20(_token).owner() == address(this);
-		}
-	}
-
-	function changeTokenStatus(address _token) external onlyAdmin {
-		require(registeredTokens[_token].tokenId > 0, "bridge: token must by registered first");
-		_changeTokenStatus(_token);
-	}
-
-	function forceChangeTokenStatus(address _token, bool _status) external onlyAdmin {
+	function changeTokenOwnership(address _token, bool _status) external onlyAdmin {
 		require(registeredTokens[_token].tokenId > 0, "bridge: token must by registered first");
 		registeredTokens[_token].isOwn = _status;
 	}
@@ -237,7 +220,6 @@ contract Bridge {
 
 			tokens.push(_tokens[i]);
 			registeredTokens[_tokens[i]].tokenId = uint16(tokens.length);
-			_changeTokenStatus(_tokens[i]);
 		}
 	}
 

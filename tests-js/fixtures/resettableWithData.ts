@@ -22,7 +22,7 @@ export const getRessetableWithDataConfig = async () => {
 
   const [token1, token2, token3] = tokens;
   await bridge.registerTokens([token1, token2, ethers.ZeroAddress]);
-  await bridge.forceChangeTokenStatus(token1, true);
+  await bridge.changeTokenOwnership(token1, true);
 
   // set bridge as admin
   await token1.connect(owner).setAdmin(bridge);

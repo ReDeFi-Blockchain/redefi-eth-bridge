@@ -293,11 +293,11 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
       expect(await bridge.registeredTokens(token)).to.deep.eq([1, false]);
 
       // Can change false -> true
-      await bridge.forceChangeTokenStatus(token, true);
+      await bridge.changeTokenOwnership(token, true);
       expect(await bridge.registeredTokens(token)).to.deep.eq([1, true]);
 
       // Can change true -> false
-      await bridge.forceChangeTokenStatus(token, false);
+      await bridge.changeTokenOwnership(token, false);
       expect(await bridge.registeredTokens(token)).to.deep.eq([1, false]);
     });
 
@@ -415,7 +415,7 @@ describe('Non-admin', () => {
 
     await bridge.connect(admin).registerTokens([token]);
 
-    await expect(bridge.forceChangeTokenStatus(token, true))
+    await expect(bridge.changeTokenOwnership(token, true))
       .revertedWithoutReason();
   });
 });
