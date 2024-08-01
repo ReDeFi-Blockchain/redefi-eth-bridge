@@ -1,849 +1,1182 @@
-[
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_admin",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "nonpayable",
-    "type": "constructor"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "txHash",
-        "type": "bytes32"
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_admin",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "txHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "validatorId",
+          "type": "uint16"
+        }
+      ],
+      "name": "Confirmed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "targetChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "Deposit",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "funder",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "isWithdraw",
+          "type": "bool"
+        }
+      ],
+      "name": "Funded",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "txHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "sourceChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "Listed",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bool",
+          "name": "state",
+          "type": "bool"
+        }
+      ],
+      "name": "MaintenanceState",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "admin",
+          "type": "address"
+        }
+      ],
+      "name": "NewAdmin",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "signer",
+          "type": "address"
+        }
+      ],
+      "name": "NewSigner",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "validator",
+          "type": "address"
+        }
+      ],
+      "name": "NewValidator",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "validator",
+          "type": "address"
+        }
+      ],
+      "name": "RemovedValidator",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "txHash",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "Transfer",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "addFunds",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_chainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_contractAddress",
+          "type": "address"
+        }
+      ],
+      "name": "addLink",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_destinationChainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "_destinationAddress",
+          "type": "address"
+        }
+      ],
+      "name": "addPair",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_validators",
+          "type": "address[]"
+        }
+      ],
+      "name": "addValidators",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "admin",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "_status",
+          "type": "bool"
+        }
+      ],
+      "name": "changeTokenOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_validator",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "_isDeleted",
+          "type": "bool"
+        }
+      ],
+      "name": "changeValidatorState",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "_txHashes",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "confirm",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "confirmations",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "receiver",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint16",
+          "name": "tokenId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bool",
+          "name": "isSent",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_txHash",
+          "type": "bytes32"
+        }
+      ],
+      "name": "confirmedBy",
+      "outputs": [
+        {
+          "internalType": "uint16[]",
+          "name": "",
+          "type": "uint16[]"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_receiver",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_targetChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "deposit",
+      "outputs": [],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_destinationChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "getDestinationAddress",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_destinationChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "hasPair",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "_txHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "_validator",
+          "type": "address"
+        }
+      ],
+      "name": "isConfirmedBy",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "isMaintenanceEnabled",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "name": "isPairDeleted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_validator",
+          "type": "address"
+        }
+      ],
+      "name": "isValidator",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "isValidatorDeleted",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "links",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256[][]",
+          "name": "_args",
+          "type": "uint256[][]"
+        }
+      ],
+      "name": "list",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "pairs",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "sourceAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "destinationChainId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "destinationAddress",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address[]",
+          "name": "_tokens",
+          "type": "address[]"
+        }
+      ],
+      "name": "registerTokens",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "registeredTokens",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "tokenId",
+          "type": "uint16"
+        },
+        {
+          "internalType": "bool",
+          "name": "isOwn",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_sourceAddress",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_destinationChainId",
+          "type": "uint256"
+        }
+      ],
+      "name": "removePair",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "requiredConfirmations",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_admin",
+          "type": "address"
+        }
+      ],
+      "name": "setAdmin",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint16",
+          "name": "_confirmations",
+          "type": "uint16"
+        }
+      ],
+      "name": "setRequiredConfirmations",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_signer",
+          "type": "address"
+        }
+      ],
+      "name": "setSigner",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "signer",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bool",
+          "name": "_state",
+          "type": "bool"
+        }
+      ],
+      "name": "switchMaintenance",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "tokens",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32[]",
+          "name": "_txHashes",
+          "type": "bytes32[]"
+        }
+      ],
+      "name": "transfer",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "validatorIds",
+      "outputs": [
+        {
+          "internalType": "uint16",
+          "name": "",
+          "type": "uint16"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "validators",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawFunds",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "doc": {
+    "devdoc": {
+      "events": {
+        "Confirmed(bytes32,uint16)": {
+          "params": {
+            "txHash": "The transaction hash",
+            "validatorId": "The ID of the validator"
+          }
+        },
+        "Deposit(address,address,uint256,uint256)": {
+          "params": {
+            "amount": "The amount of tokens being deposited",
+            "receiver": "The address of the receiver on the target chain",
+            "targetChainId": "The ID of the target chain",
+            "token": "The address of the token being deposited"
+          }
+        },
+        "Funded(address,address,uint256,bool)": {
+          "params": {
+            "amount": "The amount of tokens",
+            "funder": "The address of the funder",
+            "isWithdraw": "Indicates if the funds were withdrawn",
+            "token": "The address of the token"
+          }
+        },
+        "Listed(bytes32,uint256)": {
+          "params": {
+            "sourceChainId": "The ID of the source chain",
+            "txHash": "The transaction hash"
+          }
+        },
+        "MaintenanceState(bool)": {
+          "params": {
+            "state": "The new maintenance state"
+          }
+        },
+        "NewAdmin(address)": {
+          "params": {
+            "admin": "The address of the new admin"
+          }
+        },
+        "NewSigner(address)": {
+          "params": {
+            "signer": "The address of the new signer"
+          }
+        },
+        "NewValidator(address)": {
+          "params": {
+            "validator": "The address of the new validator"
+          }
+        },
+        "RemovedValidator(address)": {
+          "params": {
+            "validator": "The address of the removed validator"
+          }
+        },
+        "Transfer(bytes32,uint256)": {
+          "params": {
+            "amount": "The amount of tokens being transferred",
+            "txHash": "The transaction hash"
+          }
+        }
       },
-      {
-        "indexed": false,
-        "internalType": "uint16",
-        "name": "validatorId",
-        "type": "uint16"
-      }
-    ],
-    "name": "Confirmed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
+      "kind": "dev",
+      "methods": {
+        "addFunds(address,uint256)": {
+          "details": "Allows users to add funds to the bridge for cross-chain transactions. Only active when the bridge is not in maintenance mode.",
+          "params": {
+            "_amount": "The amount of tokens to add.",
+            "_token": "The address of the token."
+          }
+        },
+        "addLink(uint256,address)": {
+          "params": {
+            "_chainId": "The ID of the target chain to link.",
+            "_contractAddress": "The address of the bridge contract on the target chain."
+          }
+        },
+        "addPair(address,uint256,address)": {
+          "details": "Creates a mapping between a source token address and a destination chain with its corresponding token address. This enables tokens to be transferred between the current chain and the target chain.",
+          "params": {
+            "_destinationAddress": "The address of the token on the destination chain.",
+            "_destinationChainId": "The ID of the destination chain where the token will be sent.",
+            "_sourceAddress": "The address of the source token on the current chain."
+          }
+        },
+        "addValidators(address[])": {
+          "params": {
+            "_validators": "The addresses of the new validators"
+          }
+        },
+        "changeTokenOwnership(address,bool)": {
+          "details": "Sets whether a token is owned by the bridge, affecting how the token is handled during transactions.",
+          "params": {
+            "_status": "The new ownership status (true if the token is owned by the bridge, false otherwise).",
+            "_token": "The address of the token."
+          }
+        },
+        "changeValidatorState(address,bool)": {
+          "details": "Sets the deletion status of a validator, which affects their ability to confirm transactions.",
+          "params": {
+            "_isDeleted": "The deletion status (true if the validator is to be marked as deleted, false otherwise).",
+            "_validator": "The address of the validator."
+          }
+        },
+        "confirm(bytes32[])": {
+          "details": "Validators use this function to confirm transactions, which is required for the transaction to be executed.",
+          "params": {
+            "_txHashes": "An array of transaction hashes to be confirmed."
+          }
+        },
+        "confirmedBy(bytes32)": {
+          "params": {
+            "_txHash": "The transaction hash."
+          },
+          "returns": {
+            "_0": "An array of validator IDs that confirmed the transaction hash."
+          }
+        },
+        "constructor": {
+          "params": {
+            "_admin": "The address of the admin"
+          }
+        },
+        "deposit(address,address,uint256,uint256)": {
+          "details": "Allows users to deposit tokens to the bridge, which will be transferred to the specified address on the target chain.",
+          "params": {
+            "_amount": "The amount of tokens being deposited.",
+            "_receiver": "The address of the receiver on the target chain.",
+            "_targetChainId": "The ID of the target chain.",
+            "_token": "The address of the token being deposited."
+          }
+        },
+        "getDestinationAddress(address,uint256)": {
+          "params": {
+            "_destinationChainId": "The destination chain ID",
+            "_sourceAddress": "The source token address"
+          },
+          "returns": {
+            "_0": "The destination token address"
+          }
+        },
+        "hasPair(address,uint256)": {
+          "params": {
+            "_destinationChainId": "The destination chain ID",
+            "_sourceAddress": "The source token address"
+          },
+          "returns": {
+            "_0": "True if the pair exists, false otherwise"
+          }
+        },
+        "isConfirmedBy(bytes32,address)": {
+          "params": {
+            "_txHash": "The transaction hash.",
+            "_validator": "The address of the validator."
+          },
+          "returns": {
+            "_0": "True if the transaction hash is confirmed by the validator, false otherwise."
+          }
+        },
+        "isValidator(address)": {
+          "params": {
+            "_validator": "The address to check"
+          },
+          "returns": {
+            "_0": "True if the address is a validator, false otherwise"
+          }
+        },
+        "list(uint256[][])": {
+          "details": "This function is used by the signer to list transactions, preparing them for confirmation by validators.",
+          "params": {
+            "_args": "A 2D array containing transaction details. Each inner array should contain the source token address, destination address, amount, source chain ID, and transaction hash."
+          }
+        },
+        "registerTokens(address[])": {
+          "details": "Adds new tokens to the bridge, allowing them to be used in cross-chain transactions.",
+          "params": {
+            "_tokens": "An array of token addresses to be registered."
+          }
+        },
+        "removePair(address,uint256)": {
+          "params": {
+            "_destinationChainId": "The destination chain ID",
+            "_sourceAddress": "The source token address"
+          }
+        },
+        "setAdmin(address)": {
+          "params": {
+            "_admin": "The address of the new admin"
+          }
+        },
+        "setRequiredConfirmations(uint16)": {
+          "details": "The number of confirmations represents the minimum number of validators that must confirm a transaction before it can be executed. Validators play a crucial role in ensuring the legitimacy and security of cross-chain transactions.",
+          "params": {
+            "_confirmations": "The number of required confirmations."
+          }
+        },
+        "setSigner(address)": {
+          "params": {
+            "_signer": "The address of the new signer"
+          }
+        },
+        "switchMaintenance(bool)": {
+          "params": {
+            "_state": "The new maintenance state"
+          }
+        },
+        "transfer(bytes32[])": {
+          "details": "This function is used by the signer to transfer tokens to the destination addresses after sufficient confirmations have been received. It ensures that only transactions that have received the required number of validator confirmations are executed.",
+          "params": {
+            "_txHashes": "An array of transaction hashes to be processed for transfer."
+          }
+        },
+        "withdrawFunds(address,uint256)": {
+          "details": "Allows users to withdraw their funds from the bridge.",
+          "params": {
+            "_amount": "The amount of tokens to withdraw.",
+            "_token": "The address of the token."
+          }
+        }
       },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "receiver",
-        "type": "address"
+      "version": 1
+    },
+    "userdoc": {
+      "events": {
+        "Confirmed(bytes32,uint16)": {
+          "notice": "Emitted when a transaction is confirmed by a validator"
+        },
+        "Deposit(address,address,uint256,uint256)": {
+          "notice": "Emitted when a deposit is made to the bridge"
+        },
+        "Funded(address,address,uint256,bool)": {
+          "notice": "Emitted when funds are added or withdrawn from the bridge"
+        },
+        "Listed(bytes32,uint256)": {
+          "notice": "Emitted when a transaction is listed on the bridge"
+        },
+        "MaintenanceState(bool)": {
+          "notice": "Emitted when the maintenance state is changed"
+        },
+        "NewAdmin(address)": {
+          "notice": "Emitted when a new admin is set"
+        },
+        "NewSigner(address)": {
+          "notice": "Emitted when a new signer is set"
+        },
+        "NewValidator(address)": {
+          "notice": "Emitted when a new validator is added"
+        },
+        "RemovedValidator(address)": {
+          "notice": "Emitted when a validator is removed"
+        },
+        "Transfer(bytes32,uint256)": {
+          "notice": "Emitted when a transfer is executed from the bridge"
+        }
       },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
+      "kind": "user",
+      "methods": {
+        "addFunds(address,uint256)": {
+          "notice": "Adds funds to the bridge for a specific token."
+        },
+        "addLink(uint256,address)": {
+          "notice": "Adds a new link to the bridge on the specified chain."
+        },
+        "addPair(address,uint256,address)": {
+          "notice": "Adds a new token pair for cross-chain transactions."
+        },
+        "addValidators(address[])": {
+          "notice": "Adds new validators"
+        },
+        "changeTokenOwnership(address,bool)": {
+          "notice": "Changes the ownership status of a registered token."
+        },
+        "changeValidatorState(address,bool)": {
+          "notice": "Changes the state of a validator (active or deleted)."
+        },
+        "confirm(bytes32[])": {
+          "notice": "Confirms one or more transaction hashes."
+        },
+        "confirmedBy(bytes32)": {
+          "notice": "Gets the list of validator IDs that confirmed a specific transaction hash."
+        },
+        "constructor": {
+          "notice": "Initializes the contract with the admin address"
+        },
+        "deposit(address,address,uint256,uint256)": {
+          "notice": "Deposits tokens to the bridge for cross-chain transfer."
+        },
+        "getDestinationAddress(address,uint256)": {
+          "notice": "Gets the destination address for a token pair"
+        },
+        "hasPair(address,uint256)": {
+          "notice": "Checks if a token pair exists"
+        },
+        "isConfirmedBy(bytes32,address)": {
+          "notice": "Checks if a transaction hash is confirmed by a specific validator."
+        },
+        "isValidator(address)": {
+          "notice": "Checks if an address is a validator"
+        },
+        "list(uint256[][])": {
+          "notice": "Lists transactions for cross-chain transfer."
+        },
+        "registerTokens(address[])": {
+          "notice": "Registers a list of new tokens for the bridge."
+        },
+        "removePair(address,uint256)": {
+          "notice": "Removes a token pair"
+        },
+        "setAdmin(address)": {
+          "notice": "Sets a new admin"
+        },
+        "setRequiredConfirmations(uint16)": {
+          "notice": "Sets the required number of confirmations for a transaction to be executed by validators."
+        },
+        "setSigner(address)": {
+          "notice": "Sets a new signer"
+        },
+        "switchMaintenance(bool)": {
+          "notice": "Switches the maintenance state of the bridge"
+        },
+        "transfer(bytes32[])": {
+          "notice": "Transfers tokens based on confirmed transaction hashes."
+        },
+        "withdrawFunds(address,uint256)": {
+          "notice": "Withdraws funds from the bridge for a specific token."
+        }
       },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "targetChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "Deposit",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "funder",
-        "type": "address"
-      },
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "token",
-        "type": "address"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "indexed": false,
-        "internalType": "bool",
-        "name": "isWithdraw",
-        "type": "bool"
-      }
-    ],
-    "name": "Funded",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "txHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "sourceChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "Listed",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bool",
-        "name": "state",
-        "type": "bool"
-      }
-    ],
-    "name": "MaintenanceState",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "admin",
-        "type": "address"
-      }
-    ],
-    "name": "NewAdmin",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "signer",
-        "type": "address"
-      }
-    ],
-    "name": "NewSigner",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "validator",
-        "type": "address"
-      }
-    ],
-    "name": "NewValidator",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "address",
-        "name": "validator",
-        "type": "address"
-      }
-    ],
-    "name": "RemovedValidator",
-    "type": "event"
-  },
-  {
-    "anonymous": false,
-    "inputs": [
-      {
-        "indexed": true,
-        "internalType": "bytes32",
-        "name": "txHash",
-        "type": "bytes32"
-      },
-      {
-        "indexed": false,
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "Transfer",
-    "type": "event"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "addFunds",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "_chainId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_contractAddress",
-        "type": "address"
-      }
-    ],
-    "name": "addLink",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sourceAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_destinationChainId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "_destinationAddress",
-        "type": "address"
-      }
-    ],
-    "name": "addPair",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "_validators",
-        "type": "address[]"
-      }
-    ],
-    "name": "addValidators",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "admin",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_status",
-        "type": "bool"
-      }
-    ],
-    "name": "changeTokenOwnership",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_validator",
-        "type": "address"
-      },
-      {
-        "internalType": "bool",
-        "name": "_isDeleted",
-        "type": "bool"
-      }
-    ],
-    "name": "changeValidatorState",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32[]",
-        "name": "_txHashes",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "confirm",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "",
-        "type": "bytes32"
-      }
-    ],
-    "name": "confirmations",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint16",
-        "name": "tokenId",
-        "type": "uint16"
-      },
-      {
-        "internalType": "bool",
-        "name": "isSent",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "_txHash",
-        "type": "bytes32"
-      }
-    ],
-    "name": "confirmedBy",
-    "outputs": [
-      {
-        "internalType": "uint16[]",
-        "name": "",
-        "type": "uint16[]"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_receiver",
-        "type": "address"
-      },
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_targetChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "deposit",
-    "outputs": [],
-    "stateMutability": "payable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sourceAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_destinationChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "getDestinationAddress",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sourceAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_destinationChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "hasPair",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32",
-        "name": "_txHash",
-        "type": "bytes32"
-      },
-      {
-        "internalType": "address",
-        "name": "_validator",
-        "type": "address"
-      }
-    ],
-    "name": "isConfirmedBy",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "isMaintenanceEnabled",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint16",
-        "name": "",
-        "type": "uint16"
-      }
-    ],
-    "name": "isPairDeleted",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_validator",
-        "type": "address"
-      }
-    ],
-    "name": "isValidator",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "isValidatorDeleted",
-    "outputs": [
-      {
-        "internalType": "bool",
-        "name": "",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "links",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256[][]",
-        "name": "_args",
-        "type": "uint256[][]"
-      }
-    ],
-    "name": "list",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "owner",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "pairs",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "sourceAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "destinationChainId",
-        "type": "uint256"
-      },
-      {
-        "internalType": "address",
-        "name": "destinationAddress",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address[]",
-        "name": "_tokens",
-        "type": "address[]"
-      }
-    ],
-    "name": "registerTokens",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "registeredTokens",
-    "outputs": [
-      {
-        "internalType": "uint16",
-        "name": "tokenId",
-        "type": "uint16"
-      },
-      {
-        "internalType": "bool",
-        "name": "isOwn",
-        "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_sourceAddress",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_destinationChainId",
-        "type": "uint256"
-      }
-    ],
-    "name": "removePair",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "requiredConfirmations",
-    "outputs": [
-      {
-        "internalType": "uint16",
-        "name": "",
-        "type": "uint16"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_admin",
-        "type": "address"
-      }
-    ],
-    "name": "setAdmin",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint16",
-        "name": "_confirmations",
-        "type": "uint16"
-      }
-    ],
-    "name": "setRequiredConfirmations",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_signer",
-        "type": "address"
-      }
-    ],
-    "name": "setSigner",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "signer",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bool",
-        "name": "_state",
-        "type": "bool"
-      }
-    ],
-    "name": "switchMaintenance",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "tokens",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "bytes32[]",
-        "name": "_txHashes",
-        "type": "bytes32[]"
-      }
-    ],
-    "name": "transfer",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "name": "validatorIds",
-    "outputs": [
-      {
-        "internalType": "uint16",
-        "name": "",
-        "type": "uint16"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "name": "validators",
-    "outputs": [
-      {
-        "internalType": "address",
-        "name": "",
-        "type": "address"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [
-      {
-        "internalType": "address",
-        "name": "_token",
-        "type": "address"
-      },
-      {
-        "internalType": "uint256",
-        "name": "_amount",
-        "type": "uint256"
-      }
-    ],
-    "name": "withdrawFunds",
-    "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+      "version": 1
+    }
   }
-]
+}

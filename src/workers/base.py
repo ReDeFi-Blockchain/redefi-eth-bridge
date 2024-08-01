@@ -64,7 +64,7 @@ class Worker(object):
     @classmethod
     def get_bridge_contract(cls, api: web3.Web3, contract_address: types.Address, poll_latency=1.0):
         with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'abi', 'BridgeLinked.json'), 'r') as f:
-            abi = json.loads(f.read())
+            abi = json.loads(f.read())['abi']
             return util.ContractWrapper(
                 api, contract_address, contract_abi=abi, poll_latency=poll_latency
             )

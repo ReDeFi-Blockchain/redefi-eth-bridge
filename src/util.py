@@ -1,3 +1,4 @@
+import json
 import typing
 
 import web3
@@ -24,12 +25,16 @@ class ContractHelper(object):
     def compile(
         cls, code: str, solc_version='0.8.22', contract_name: str = None
     ) -> typing.TypedDict('ContractInterface', {'abi': list, 'bin': bytes}):
-        compiled_sol = solcx.compile_source(code, solc_version=solc_version, output_values=['abi', 'bin'])
+        compiled_sol = solcx.compile_source(code, solc_version=solc_version, output_values=['abi', 'bin', 'metadata'])
 
         contract_id, contract_interface = (
             compiled_sol.popitem() if contract_name is None
             else (f'<stdin>:{contract_name}', compiled_sol[f'<stdin>:{contract_name}'])
         )
+        contract_interface['doc'] = {
+            k: v for k, v in json.loads(contract_interface.pop('metadata'))['output'].items()
+            if k in ('devdoc', 'userdoc')
+        }
         return contract_interface
 
     @classmethod
