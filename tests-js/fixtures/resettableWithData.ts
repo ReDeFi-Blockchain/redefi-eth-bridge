@@ -20,18 +20,18 @@ export const getRessetableWithDataConfig = async () => {
   const {owner, admin, user, signers, tokens, bridge,
   } = await loadFixture(getRessetableConfig);
 
-  const [token1, token2, token3] = tokens;
-  await bridge.registerTokens([token1, token2, ethers.ZeroAddress]);
-  await bridge.changeTokenOwnership(token1, true);
+  const [ownedToken, nonOwnedToken, nonRegisteredToken] = tokens;
+  await bridge.registerTokens([ownedToken, nonOwnedToken, ethers.ZeroAddress]);
+  await bridge.changeTokenOwnership(ownedToken, true);
 
   // set bridge as admin
-  await token1.connect(owner).setAdmin(bridge);
-  await token2.connect(owner).setAdmin(bridge);
+  await ownedToken.connect(owner).setAdmin(bridge);
+  await nonOwnedToken.connect(owner).setAdmin(bridge);
 
 
   // topup bridge balance
-  await token1.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
-  await token2.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
+  await ownedToken.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
+  await nonOwnedToken.connect(owner).transfer(await bridge.getAddress(), bridgeBalance);
   await bridge.addFunds(ethers.ZeroAddress, bridgeBalance, {value: bridgeBalance});
 
   const [user2, signer, validator] = signers;
@@ -42,25 +42,29 @@ export const getRessetableWithDataConfig = async () => {
   const amount1 = 100n * (10n ** 18n);
   const sourceChain1 = 1899;
   const txHash1 = '0x90434dda53a751ae504ae030c79d7342dbebe941a00958a646cf126c6b4f71f0';
-  const tokenAddress1 = await token1.getAddress();
+  const tokenAddress1 = await ownedToken.getAddress();
   
   const amount2 = 50n * (10n ** 18n);
   const sourceChain2 = 44444;
   const txHash2 = '0xecb5c281698ea4756394cbd0e0d7a09ca03d71ed52ceda6065a4eeb58731c596';
-  const tokenAddress2 = await token2.getAddress();
+  const tokenAddress2 = await nonOwnedToken.getAddress();
 
   const amount3 = 75n * (10n ** 18n);
   const sourceChain3 = 55555;
   const txHash3 = '0xd5fb7341224c07f4d643b1e0724c3d26c3d786be56dcbf255785bf3970f08231';
   const tokenAddress3 = ethers.ZeroAddress;
 
+  const bridgeOnSiblingChain = ethers.getCreateAddress({from: admin.address, nonce: 12345});
+  await bridge.addLink(sourceChain1, bridgeOnSiblingChain);
+  await bridge.addLink(sourceChain2, bridgeOnSiblingChain);
+  await bridge.addLink(sourceChain3, bridgeOnSiblingChain);
 
   const VALID_LIST_INFO_1: ListInfo = {
     amount: amount1,
     hash: txHash1,
     chainId: sourceChain1,
     recepient: user.address,
-    token: token1,
+    token: ownedToken,
     data: [
       BigInt(tokenAddress1),
       BigInt(user.address),
@@ -75,7 +79,7 @@ export const getRessetableWithDataConfig = async () => {
     hash: txHash2,
     chainId: sourceChain2,
     recepient: user2.address,
-    token: token2,
+    token: nonOwnedToken,
     data: [
       BigInt(tokenAddress2),
       BigInt(user2.address),
@@ -107,9 +111,9 @@ export const getRessetableWithDataConfig = async () => {
     signer,
     validator,
     tokens: {
-      owned: token1,
-      nonOwned: token2,
-      nonRegistered: token3,
+      owned: ownedToken,
+      nonOwned: nonOwnedToken,
+      nonRegistered: nonRegisteredToken,
     },
     bridge,
     data: [

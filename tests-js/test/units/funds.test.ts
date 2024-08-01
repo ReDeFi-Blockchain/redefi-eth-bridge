@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import { getRessetableConfig } from '../../fixtures/resettable';
 import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { Bridge, TestERC20 } from '../../typechain-types';
@@ -9,7 +8,6 @@ import { getRessetableWithDataConfig } from '../../fixtures/resettableWithData';
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
 let user: HardhatEthersSigner;
-let tokens: TestERC20[];
 let ownedToken: TestERC20;
 let nonOwnedToken: TestERC20;
 let nonRegisteredToken: TestERC20;
@@ -20,17 +18,14 @@ const ADD_NATIVE_FUND_VALUE = 5000n * (10n ** 18n);
 
 describe('User', () => {
   beforeEach(async () => {
-    ({bridge, owner, user, tokens} = await loadFixture(getRessetableConfig));
-    [ownedToken, nonOwnedToken, nonRegisteredToken] = tokens;
-  
-    // token1 is owned by the bridge
-    await ownedToken.connect(owner).transferOwnership(bridge);
-  
-    // register native and erc-20 token
-    await bridge.connect(owner).registerTokens([
-      ownedToken, nonOwnedToken, nativeTokenAddress
-    ]);
-  
+    const fixture = await loadFixture(getRessetableWithDataConfig);
+    bridge = fixture.bridge;
+    ownedToken = fixture.tokens.owned;
+    nonOwnedToken = fixture.tokens.nonOwned;
+    nonRegisteredToken = fixture.tokens.nonRegistered;
+    owner = fixture.owner;
+    [user] = fixture.users;
+    
     // all the transactions performed by the user
     bridge = bridge.connect(user);
     ownedToken = ownedToken.connect(user);
@@ -218,6 +213,7 @@ describe('User', () => {
   });
 
   it('cannot withdraw token owned by the bridge', async() => {
+    await bridge.connect(owner).changeTokenOwnership(ownedToken, true);
     await expect(bridge.withdrawFunds(ownedToken, 1))
       .rejectedWith('bridge: no need any funds for owned tokens');
   });
@@ -247,7 +243,7 @@ describe('User', () => {
       BigInt(await tokens.nonOwned.getAddress()),
       BigInt(recepient.address),
       bridgeBalanceBefore + 100n,
-      9999,
+      1899,
       BigInt('0x9daa6e69e52c3f6ef8f4da8a88ec9ea031ee036c64f91ead13ca61fc054e1038'),
     ]
 
