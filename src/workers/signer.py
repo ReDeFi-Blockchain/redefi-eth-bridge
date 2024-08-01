@@ -108,9 +108,10 @@ class Signer(Worker):
 
     def listen_blocks(self, last_block: int = 0) -> int:
         current_block = self.api.eth.block_number - self.config.eth_block_confirmations
-        if last_block >= current_block:
+        while last_block >= current_block:
             time.sleep(self.config.poll_latency)
-            return current_block
+            current_block = self.api.eth.block_number - self.config.eth_block_confirmations
+        
         to_block = min(last_block + 10, current_block)
 
         if self.name == self.TYPE_LISTER:
