@@ -111,7 +111,7 @@ class Signer(Worker):
         while last_block >= current_block:
             time.sleep(self.config.poll_latency)
             current_block = self.api.eth.block_number - self.config.eth_block_confirmations
-        
+
         to_block = min(last_block + 10, current_block)
 
         if self.name == self.TYPE_LISTER:
