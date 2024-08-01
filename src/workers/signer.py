@@ -96,9 +96,9 @@ class Signer(Worker):
         to_block = min(last_block + 10, current_block)
 
         if self.name == self.TYPE_LISTER:
-            self.listen_deposits(from_block_number=current_block, to_block_number=to_block)
+            self.listen_deposits(from_block_number=last_block, to_block_number=to_block)
         if self.name == self.TYPE_TRANSACTOR:
-            self.listen_confirmations(from_block_number=current_block, to_block_number=to_block)
+            self.listen_confirmations(from_block_number=last_block, to_block_number=to_block)
 
         return to_block
 
