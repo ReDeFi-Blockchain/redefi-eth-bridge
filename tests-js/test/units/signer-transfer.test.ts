@@ -1,7 +1,6 @@
 import { expect } from 'chai';
-import { getRessetableConfig } from '../../fixtures/resettable';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
-import { Bridge, TestERC20 } from '../../typechain-types';
+import { Bridge } from '../../typechain-types';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { getRessetableWithDataConfig, ListInfo } from '../../fixtures/resettableWithData';
 import { ethers } from 'hardhat';
@@ -179,7 +178,7 @@ describe('Signer transfer', async () => {
         BigInt(nativeTokenAddress),
         BigInt(owner.address),
         10000n * (10n ** 18n),
-        18929,
+        1899,
         BigInt(txHash),
       ]
     await bridge.list([tooBigTransfer]);
@@ -197,7 +196,7 @@ describe('Signer transfer', async () => {
         BigInt(await listInfoNonOwned.token.getAddress()),
         BigInt(owner.address),
         10000n * (10n ** 18n),
-        18929,
+        1899,
         BigInt(txHash),
       ];
 
@@ -238,7 +237,7 @@ describe('Signer transfer', async () => {
         BigInt(nativeTokenAddress),
         BigInt(await reentrancy.getAddress()),
         DEPOSIT,
-        1888,
+        1899,
         BigInt(txHash)
       ]
     ]);

@@ -1,14 +1,13 @@
-import { expect, use } from 'chai';
-import { getRessetableConfig } from '../../fixtures/resettable';
+import { expect } from 'chai';
 import { ethers } from 'hardhat';
 import { loadFixture } from '@nomicfoundation/hardhat-network-helpers';
 import { Bridge, TestERC20 } from '../../typechain-types';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+import { getRessetableWithDataConfig } from '../../fixtures/resettableWithData';
 
 let bridge: Bridge;
 let owner: HardhatEthersSigner;
 let user: HardhatEthersSigner;
-let tokens: TestERC20[];
 let ownedToken: TestERC20;
 let nonOwnedToken: TestERC20;
 let nonRegisteredToken: TestERC20;
@@ -20,16 +19,23 @@ const TARGER_CHAIN_ID = 1899;
 
 describe('Deposit', () => {
   beforeEach(async () => {
-    ({bridge, owner, user, tokens} = await loadFixture(getRessetableConfig));
-    [ownedToken, nonOwnedToken, nonRegisteredToken] = tokens;
+    const fixture = await loadFixture(getRessetableWithDataConfig);
+    bridge = fixture.bridge;
+    ownedToken = fixture.tokens.owned;
+    nonOwnedToken = fixture.tokens.nonOwned;
+    nonRegisteredToken = fixture.tokens.nonRegistered;
+    [user] = fixture.users;
+    owner = fixture.owner;
   
-    // token1 is owned by the bridge
-    await ownedToken.connect(owner).transferOwnership(bridge);
+    // // token1 is owned by the bridge
+    // await bridge.changeTokenOwnership(ownedToken, true);
   
     // register native and erc-20 token
-    await bridge.connect(owner).registerTokens([
-      ownedToken, nonOwnedToken, nativeTokenAddress
-    ]);
+    // await bridge.connect(owner).registerTokens([
+    //   ownedToken, nonOwnedToken, nativeTokenAddress
+    // ]);
+
+    // await bridge.addLink(TARGER_CHAIN_ID, ethers.Wallet.createRandom());
   
     // all the transactions performed by the user
     bridge = bridge.connect(user);

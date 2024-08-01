@@ -260,10 +260,8 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
         .revertedWith('bridge: invalid pair');
     });
 
-    it('can add ownable tokens, if token owned by the bridge it will be marked as isOwn', async () => {
+    it('can register tokens', async () => {
       const [token1, token2] = tokens;
-      // token 2 owned by the bridge
-      await token2.connect(owner).transferOwnership(bridge);
 
       expect(await bridge.registeredTokens(token1)).to.deep.eq([0, false]);
       expect(await bridge.registeredTokens(token2)).to.deep.eq([0, false]);
@@ -272,7 +270,7 @@ for (const TEST_CASE of ['Owner', 'Admin'] as const) {
 
       // Assert
       expect(await bridge.registeredTokens(token1)).to.deep.eq([1, false]);
-      expect(await bridge.registeredTokens(token2)).to.deep.eq([2, true]);
+      expect(await bridge.registeredTokens(token2)).to.deep.eq([2, false]);
 
       expect(await bridge.tokens(0)).to.eq(token1);
       expect(await bridge.tokens(1)).to.eq(token2);
