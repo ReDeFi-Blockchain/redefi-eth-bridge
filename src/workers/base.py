@@ -87,7 +87,7 @@ class Worker(object):
 
         while True:
             previous = last_block
-            last_block = self.listen_blocks(last_block)
+            last_block = self.listen_blocks(last_block + 1)
             self.save_last_block(last_block)
             self.log.info(f'[worker.{class_name}.{self.name}] Scanned blocks {previous} - {last_block}')
 

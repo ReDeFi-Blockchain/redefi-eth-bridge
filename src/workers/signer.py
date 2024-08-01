@@ -41,6 +41,11 @@ class Signer(Worker):
         source_bridge = self.get_bridge_contract(
             target_api, target_bridge_address, poll_latency=self.config.poll_latency
         )
+        listed_receiver, listed_amount, listed_token_id, is_sent = source_bridge.call_method(
+            'confirmations', (tx_hash,)
+        )
+        if listed_amount > 0:
+            raise self.SignerError(f'txHash {tx_hash}: txHash already listed')
         backlink_address = source_bridge.call_method('links', (self.chain_id,))
         if backlink_address != self.bridge.contract.address:
             raise self.SignerError(f'txHash {tx_hash}: Bridge for chainId {deposit_event["targetChainId"]} '
