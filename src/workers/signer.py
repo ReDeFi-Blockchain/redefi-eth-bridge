@@ -60,11 +60,17 @@ class Signer(Worker):
                      ],),
             {'from': self.account.address}
         )
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'listed txHash {tx_hash} in block #{tx["blockNumber"]}')
         return tx
 
     def listen_deposits(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
         events = self.bridge.contract.events.Deposit.get_logs(fromBlock=from_block_number, toBlock=to_block_number)
         block_numbers = []
+        if events:
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'Got ({len(events)}) deposit events from users '
+                          f'in blocks #{from_block_number}-#{to_block_number}')
         for event in events:
             block_numbers.append(self.list_by_event(event)['blockNumber'])
 
@@ -85,10 +91,17 @@ class Signer(Worker):
         _, _, _, is_sent = self.bridge.call_method('confirmations', (tx_hash,))
         if is_sent:
             return
-        self.transfer(tx_hash)
+        tx = self.transfer(tx_hash)
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'confirm (call transfer) txHash {tx_hash} in block #{tx["blockNumber"]}')
 
     def listen_confirmations(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
         events = self.bridge.contract.events.Confirmed.get_logs(fromBlock=from_block_number, toBlock=to_block_number)
+        if not events:
+            return
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'Got ({len(events)}) confirmation events from validators '
+                      f'in blocks #{from_block_number}-#{to_block_number}')
         required_confirmations = self.bridge.call_method('requiredConfirmations')
         for event in events:
             self.confirm_by_event(event, required_confirmations)
