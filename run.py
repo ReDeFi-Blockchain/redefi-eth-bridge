@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 from src.workers import Signer, Validator
 
@@ -42,5 +43,7 @@ handler.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s
 log.addHandler(handler)
 log.setLevel(logging.DEBUG)
 
-worker = workers[worker_type](name=worker_name)
+in_debug = os.getenv('IN_DEBUG', 'false') == 'true'
+
+worker = workers[worker_type](name=worker_name, debug=in_debug)
 worker.listen()

@@ -1,0 +1,38 @@
+:root {
+  --indent: 12px;
+  --margin: 24px;
+  --color: #F5F5F5;
+  --background: #1B1E23;
+  --font-size: 16px;
+  --font-family: "Chakra Petch", Roboto, Ubuntu, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  min-height: 100vh;
+  color: var(--color);
+  background: var(--background);
+  transition:
+    color 0.5s,
+    background-color 0.5s;
+  line-height: 1.6;
+  font-family: var(--font-family);
+  font-weight: 400;
+  font-style: normal;
+  font-size: var(--font-size);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

@@ -84,11 +84,21 @@ class Validator(Worker):
     def confirm(self, tx_hash: str):
         # Confirm the transaction onchain
         # TODO: may fails if tokens already sent, need to handle this type of error
-        self.bridge.execute_tx('confirm', ([tx_hash],), {'from': self.account.address})
+        if self.debug:
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'DEBUG: validator should approve txHash {tx_hash} in block #{self.api.eth.block_number}')
+            return
+        tx = self.bridge.execute_tx('confirm', ([tx_hash],), {'from': self.account.address})
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'validator approved txHash {tx_hash} in block #{tx["blockNumber"]}')
 
     def validate(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
         # We get Listed event for validators on network
         events = self.bridge.contract.events.Listed.get_logs(fromBlock=from_block_number, toBlock=to_block_number)
+        if events:
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'Got ({len(events)}) listed events from signer '
+                          f'in blocks #{from_block_number}-#{to_block_number}')
         for event in events:
             try:
                 tx_hash = self.validate_event(event)
@@ -106,9 +116,9 @@ class Validator(Worker):
 
     def listen_blocks(self, last_block: int = 0) -> int:
         current_block = self.api.eth.block_number - self.config.eth_block_confirmations
-        if last_block >= current_block:
+        while last_block >= current_block:
             time.sleep(self.config.poll_latency)
-            return current_block
+            current_block = self.api.eth.block_number - self.config.eth_block_confirmations
         to_block = min(last_block + 10, current_block)
-        self.validate(from_block_number=current_block, to_block_number=to_block)
+        self.validate(from_block_number=last_block, to_block_number=to_block)
         return to_block

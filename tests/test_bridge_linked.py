@@ -42,13 +42,11 @@ class BridgeTestCase(EthTestCase):
 
         # Add tokens to bridge trusted list
         bridge.execute_tx(
-            'addTokens', ([bax_address],),
+            'registerTokens', ([bax_address],),
             {'from': deployer.address}
         )
 
         return bridge
-
-
 
     def test_bridge_linked_base(self):
         api, _deployer = self.get_api_and_deployer()
@@ -163,11 +161,11 @@ class BridgeTestCase(EthTestCase):
             0
         )
         bax_relay.execute_tx(
-            'approve', (users['deployer_relay'].address, 1000 * ONE_TOKEN),
+            'approve', (bridge_relay.contract.address, 100 * ONE_TOKEN),
             {'from': users['deployer_relay'].address}
         )
-        bax_relay.execute_tx(
-            'transferFrom', (users['deployer_relay'].address, bridge_relay.contract.address, 100 * ONE_TOKEN),
+        bridge_relay.execute_tx(
+            'addFunds', (bax_relay.contract.address, 100 * ONE_TOKEN),
             {'from': users['deployer_relay'].address}
         )
         self.assertEqual(

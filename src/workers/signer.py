@@ -41,11 +41,22 @@ class Signer(Worker):
         source_bridge = self.get_bridge_contract(
             target_api, target_bridge_address, poll_latency=self.config.poll_latency
         )
+        listed_receiver, listed_amount, listed_token_id, is_sent = source_bridge.call_method(
+            'confirmations', (tx_hash,)
+        )
+        if listed_amount > 0:
+            raise self.SignerError(f'txHash {tx_hash}: txHash already listed')
         backlink_address = source_bridge.call_method('links', (self.chain_id,))
         if backlink_address != self.bridge.contract.address:
             raise self.SignerError(f'txHash {tx_hash}: Bridge for chainId {deposit_event["targetChainId"]} '
                                    f'not linked with target bridge')
         util.eth_add_to_auto_sign(target_api, self.account)
+
+        if self.debug:
+            tx = {'blockNumber': self.api.eth.block_number}
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'DEBUG: Should listed txHash {tx_hash} in block #{tx["blockNumber"]}')
+            return tx
         tx = source_bridge.execute_tx(
             'list', ([
                          [
@@ -55,18 +66,32 @@ class Signer(Worker):
                      ],),
             {'from': self.account.address}
         )
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'listed txHash {tx_hash} in block #{tx["blockNumber"]}')
         return tx
 
     def listen_deposits(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
         events = self.bridge.contract.events.Deposit.get_logs(fromBlock=from_block_number, toBlock=to_block_number)
         block_numbers = []
+        if events:
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'Got ({len(events)}) deposit events from users '
+                          f'in blocks #{from_block_number}-#{to_block_number}')
         for event in events:
             block_numbers.append(self.list_by_event(event)['blockNumber'])
 
         return block_numbers
 
     def transfer(self, tx_hash):
-        return self.bridge.execute_tx('transfer', ([tx_hash],), {'from': self.account.address})
+        if self.debug:
+            tx = {'blockNumber': self.api.eth.block_number}
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'DEBUG: Should confirm (Call transfer)  txHash {tx_hash} in block #{tx["blockNumber"]}')
+            return tx
+        tx = self.bridge.execute_tx('transfer', ([tx_hash],), {'from': self.account.address})
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'confirm (call transfer) txHash {tx_hash} in block #{tx["blockNumber"]}')
+        return tx
 
     def confirm_by_event(self, event, required_confirmations=None):
         required_confirmations = (
@@ -84,21 +109,31 @@ class Signer(Worker):
 
     def listen_confirmations(self, from_block_number: int, to_block_number: typing.Optional[int] = None):
         events = self.bridge.contract.events.Confirmed.get_logs(fromBlock=from_block_number, toBlock=to_block_number)
+        if not events:
+            return
+        self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                      f'Got ({len(events)}) confirmation events from validators '
+                      f'in blocks #{from_block_number}-#{to_block_number}')
         required_confirmations = self.bridge.call_method('requiredConfirmations')
         for event in events:
             self.confirm_by_event(event, required_confirmations)
 
     def listen_blocks(self, last_block: int = 0) -> int:
         current_block = self.api.eth.block_number - self.config.eth_block_confirmations
-        if last_block >= current_block:
+        while last_block >= current_block:
             time.sleep(self.config.poll_latency)
-            return current_block
+            current_block = self.api.eth.block_number - self.config.eth_block_confirmations
+
         to_block = min(last_block + 10, current_block)
 
+        if self.debug:
+            self.log.debug(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                           f'Listen events from block ${last_block} to block #{to_block}')
+
         if self.name == self.TYPE_LISTER:
-            self.listen_deposits(from_block_number=current_block, to_block_number=to_block)
+            self.listen_deposits(from_block_number=last_block, to_block_number=to_block)
         if self.name == self.TYPE_TRANSACTOR:
-            self.listen_confirmations(from_block_number=current_block, to_block_number=to_block)
+            self.listen_confirmations(from_block_number=last_block, to_block_number=to_block)
 
         return to_block
 
