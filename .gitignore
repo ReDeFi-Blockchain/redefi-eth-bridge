@@ -6,3 +6,4 @@ testnet/docker-compose.yml
 testnet/urls.json
 testnet/state.json
 ._*
+docker-compose.yml

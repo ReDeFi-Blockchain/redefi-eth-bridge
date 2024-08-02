@@ -4,9 +4,10 @@ RUN mkdir -p /app/data
 
 WORKDIR /app
 
-ADD src ./src
-ADD run.py .
 ADD requirements.txt .
-ADD testnet/urls.json .
 
 RUN pip install -r requirements.txt
+
+ADD src ./src
+ADD run.py .
+ADD testnet/urls.json .

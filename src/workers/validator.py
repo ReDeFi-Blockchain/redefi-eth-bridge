@@ -84,6 +84,10 @@ class Validator(Worker):
     def confirm(self, tx_hash: str):
         # Confirm the transaction onchain
         # TODO: may fails if tokens already sent, need to handle this type of error
+        if self.debug:
+            self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
+                          f'DEBUG: validator should approve txHash {tx_hash} in block #{self.api.eth.block_number}')
+            return
         tx = self.bridge.execute_tx('confirm', ([tx_hash],), {'from': self.account.address})
         self.log.info(f'[worker.{self.__class__.__name__.lower()}.{self.name}] '
                       f'validator approved txHash {tx_hash} in block #{tx["blockNumber"]}')

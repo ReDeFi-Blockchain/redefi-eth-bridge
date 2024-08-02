@@ -5,6 +5,7 @@ import typing
 
 import web3
 import eth_account.account
+
 from src import bridge_types as types, util
 
 
@@ -41,7 +42,8 @@ class WorkerConfig(object):
 class Worker(object):
     LOGGER_NAME = 'worker.base'
 
-    def __init__(self, config: WorkerConfig = None, name: typing.Optional[str] = None):
+    def __init__(self, config: WorkerConfig = None, name: typing.Optional[str] = None, debug: bool = False):
+        self.debug = debug
         if config is None:
             config = WorkerConfig()
         self.config = config
@@ -89,7 +91,7 @@ class Worker(object):
             previous = last_block
             last_block = self.listen_blocks(last_block + 1)
             self.save_last_block(last_block)
-            self.log.info(f'[worker.{class_name}.{self.name}] Scanned blocks {previous} - {last_block}')
+            self.log.info(f'[worker.{class_name}.{self.name}] Scanned blocks {previous + 1} - {last_block}')
 
     @property
     def last_block_file_path(self):
@@ -106,6 +108,6 @@ class Worker(object):
 
     def get_last_block(self):
         if not os.path.exists(self.last_block_file_path):
-            return 0
+            return int(os.getenv('START_FROM_BLOCK', '0'))
         with open(self.last_block_file_path, 'r', encoding='utf-8') as f:
             return json.loads(f.read())
